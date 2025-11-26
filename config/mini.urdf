@@ -1,0 +1,11 @@
+<?xml version="1.0"?>
+<robot name="mini_clean" xmlns:xacro="http://www.ros.org/wiki/xacro">
+  <xacro:include filename="mini_base.urdf"/>
+  <xacro:include filename="mini_wheel_links.urdf"/>
+  <xacro:include filename="mini_wheel_joints.urdf"/>
+  <xacro:include filename="mini_ros2_control.urdf"/>
+  <xacro:mini_base_description/>
+  <xacro:mini_wheel_links/>
+  <xacro:mini_wheel_joints/>
+  <xacro:mini_ros2_control/>
+</robot>
