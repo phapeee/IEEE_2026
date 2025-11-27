@@ -1,5 +1,28 @@
-cmd_vel_relay:
-  ros__parameters:
-    input_topic: "/cmd_vel"
-    output_topic: "/mecanum_controller/reference"
-    frame_id: "base_link"
+components:
+  controller_manager:
+    enabled: false
+  joint_state_broadcaster_spawner:
+    enabled: false
+    controller_name: joint_state_broadcaster
+    controller_manager: /controller_manager
+  mecanum_controller_spawner:
+    enabled: false
+    controller_name: mecanum_controller
+    controller_manager: /controller_manager
+  robot_state_publisher:
+    enabled: true
+    namespace: controller_manager
+    parameters:
+      publish_robot_description: true
+  cmd_vel_relay:
+    enabled: false
+    name: cmd_vel_relay
+    ros__parameters:
+      input_topic: "/cmd_vel"
+      output_topic: "/mecanum_controller/reference"
+      frame_id: "base_link"
+  pointcloud_to_laserscan:
+    enabled: false
+    params_file: "/ws/config/pointcloud_to_laserscan.yaml"
+    cloud_topic: "/bot_0/left_depth_pcl"
+    scan_topic: "/bot_0/laser_scan"

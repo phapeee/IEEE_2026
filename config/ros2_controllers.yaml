@@ -24,13 +24,13 @@ mecanum_controller:
       base_frame_offset: { x: 0.0, y: 0.0, theta: 0.0 }
 
       # Your wheel radius
-      wheels_radius: 0.05
+      wheels_radius: 0.048
 
       # L = half of front–rear distance, W = half of left–right distance
       # wheel_separation_x = 2L = 0.50  -> L = 0.25
       # wheel_separation_y = 2W = 0.40  -> W = 0.20
       # sum_of_robot_center_projection_on_X_Y_axis = L + W = 0.45
-      sum_of_robot_center_projection_on_X_Y_axis: 0.45
+      sum_of_robot_center_projection_on_X_Y_axis: 0.0972
 
     # FRAMES & TF
     base_frame_id: "base_link"
