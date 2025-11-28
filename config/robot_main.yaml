@@ -1,3 +1,4 @@
+namespace: "/bot_0"
 components:
   controller_manager:
     enabled: false
@@ -13,6 +14,7 @@ components:
     enabled: true
     namespace: controller_manager
     parameters:
+      robot_description: "$(xacro /ws/config/mini_new.urdf)"
       publish_robot_description: true
   cmd_vel_relay:
     enabled: false
@@ -21,8 +23,20 @@ components:
       input_topic: "/cmd_vel"
       output_topic: "/mecanum_controller/reference"
       frame_id: "base_link"
-  pointcloud_to_laserscan:
+  pointcloud_concatenate:
+    enabled: false
+    name: pointcloud_concatenate
+    params_file: "/ws/config/pointcloud_concatenate.yaml"
+  pointcloud_to_laserscan_left:
     enabled: false
     params_file: "/ws/config/pointcloud_to_laserscan.yaml"
-    cloud_topic: "/bot_0/left_depth_pcl"
-    scan_topic: "/bot_0/laser_scan"
+    cloud_topic: "left_depth_pcl"
+    scan_topic: "left_laser_scan"
+  pointcloud_to_laserscan_right:
+    enabled: false
+    params_file: "/ws/config/pointcloud_to_laserscan.yaml"
+    cloud_topic: "right_depth_pcl"
+    scan_topic: "right_laser_scan"
+  pointcloud_filter:
+    enabled: true
+    params_file: "/ws/config/pointcloud_filter.yaml"

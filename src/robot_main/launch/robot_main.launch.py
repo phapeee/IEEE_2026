@@ -14,6 +14,8 @@ from launch_ros.parameter_descriptions import ParameterValue
 
 _COMPONENT_DEFAULTS: Dict[str, bool] = {
     "pointcloud_to_laserscan": False,
+    "pointcloud_concatenate": False,
+    "pointcloud_filter": False,
 }
 
 
@@ -61,6 +63,7 @@ def _launch_components(context, *_: Any) -> List[Node]:
     )
 
     config = _load_robot_main_config(config_path)
+    global_namespace = _normalize_namespace(config.get("namespace", ""))
     nodes: List[Node] = []
 
     if _component_enabled(config, "controller_manager"):
@@ -69,11 +72,14 @@ def _launch_components(context, *_: Any) -> List[Node]:
         cm_parameters = [{"robot_description": robot_description}, mecanum_config_path]
         if controller_parameters:
             cm_parameters.append(controller_parameters)
+        cm_namespace = _resolve_namespace(global_namespace, controller_cfg.get("namespace"))
+        cm_parameters = _namespace_frame_ids(cm_parameters, global_namespace)
         nodes.append(
             Node(
                 package="controller_manager",
                 executable="ros2_control_node",
                 parameters=cm_parameters,
+                namespace=cm_namespace,
                 output=controller_cfg.get("output", "screen"),
             )
         )
@@ -82,11 +88,13 @@ def _launch_components(context, *_: Any) -> List[Node]:
         js_cfg = _component_config(config, "joint_state_broadcaster_spawner")
         controller_name = js_cfg.get("controller_name", "joint_state_broadcaster")
         controller_manager_ns = js_cfg.get("controller_manager", "/controller_manager")
+        js_namespace = _resolve_namespace(global_namespace, js_cfg.get("namespace"))
         nodes.append(
             Node(
                 package="controller_manager",
                 executable="spawner",
                 arguments=[controller_name, "--controller-manager", controller_manager_ns],
+                namespace=js_namespace,
                 output=js_cfg.get("output", "screen"),
             )
         )
@@ -96,22 +104,29 @@ def _launch_components(context, *_: Any) -> List[Node]:
         controller_name = mecanum_cfg.get("controller_name", "mecanum_controller")
         controller_manager_ns = mecanum_cfg.get("controller_manager", "/controller_manager")
         extra_args = mecanum_cfg.get("extra_arguments", [])
+        mecanum_namespace = _resolve_namespace(global_namespace, mecanum_cfg.get("namespace"))
         nodes.append(
             Node(
                 package="controller_manager",
                 executable="spawner",
                 arguments=[controller_name, "--controller-manager", controller_manager_ns, *extra_args],
+                namespace=mecanum_namespace,
                 output=mecanum_cfg.get("output", "screen"),
             )
         )
 
     if _component_enabled(config, "robot_state_publisher"):
         rsp_cfg = _component_config(config, "robot_state_publisher")
-        rsp_parameters = rsp_cfg.get("parameters", {"publish_robot_description": True})
-        namespace = rsp_cfg.get("namespace", "controller_manager")
-        rsp_parameter_list = [{"robot_description": robot_description}]
+        namespace = _resolve_namespace(global_namespace, rsp_cfg.get("namespace", "controller_manager"))
+        rsp_parameters = {"publish_robot_description": True}
+        rsp_parameters.update(rsp_cfg.get("parameters", {}))
+        robot_description_override = rsp_parameters.pop("robot_description", None)
+        rsp_parameter_list: List[Dict[str, Any]] = [
+            _build_robot_description_parameter(robot_description_override, robot_description)
+        ]
         if rsp_parameters:
             rsp_parameter_list.append(rsp_parameters)
+        rsp_parameter_list = _namespace_frame_ids(rsp_parameter_list, global_namespace)
         nodes.append(
             Node(
                 package="robot_state_publisher",
@@ -125,42 +140,155 @@ def _launch_components(context, *_: Any) -> List[Node]:
     if _component_enabled(config, "cmd_vel_relay"):
         relay_cfg = _component_config(config, "cmd_vel_relay")
         relay_parameters = relay_cfg.get("ros__parameters", {})
+        relay_namespace = _resolve_namespace(global_namespace, relay_cfg.get("namespace"))
+        relay_parameter_list = _namespace_frame_ids([relay_parameters], global_namespace)
         nodes.append(
             Node(
                 package="cmd_vel_relay",
                 executable="cmd_vel_relay_node",
                 name=relay_cfg.get("name", "cmd_vel_relay"),
-                parameters=[relay_parameters],
+                parameters=relay_parameter_list,
+                namespace=relay_namespace,
                 output=relay_cfg.get("output", "screen"),
             )
         )
 
-    if _component_enabled(config, "pointcloud_to_laserscan"):
-        nodes.extend(_create_pointcloud_to_laserscan_nodes(config))
+    for component_name in _component_variant_names(config, "pointcloud_to_laserscan"):
+        if _component_enabled(config, component_name):
+            nodes.extend(_create_pointcloud_to_laserscan_nodes(config, global_namespace, component_name=component_name))
+
+    if _component_enabled(config, "pointcloud_concatenate"):
+        nodes.extend(_create_pointcloud_concatenate_nodes(config, global_namespace))
+
+    if _component_enabled(config, "pointcloud_filter"):
+        nodes.extend(_create_pointcloud_filter_nodes(config, global_namespace))
 
     return nodes
 
 
-def _create_pointcloud_to_laserscan_nodes(config: Dict[str, Any]) -> List[Node]:
-    node_cfg = _component_config(config, "pointcloud_to_laserscan")
+def _create_pointcloud_to_laserscan_nodes(config: Dict[str, Any], global_namespace: str, component_name: str = "pointcloud_to_laserscan") -> List[Node]:
+    node_cfg = _component_config(config, component_name)
     params_file = node_cfg.get("params_file", _discover_default_config("pointcloud_to_laserscan.yaml"))
     cloud_override = node_cfg.get("cloud_topic", "")
     scan_override = node_cfg.get("scan_topic", "")
+    node_namespace = _resolve_namespace(global_namespace, node_cfg.get("namespace"))
 
     topics = _load_topics(params_file)
     cloud_topic = cloud_override or topics.get("cloud_in", "/pointcloud")
     scan_topic = scan_override or topics.get("scan", "/scan")
+    cloud_topic = _namespaced_topic(global_namespace, cloud_topic)
+    scan_topic = _namespaced_topic(global_namespace, scan_topic)
+
+    node_name = node_cfg.get("name", f"{component_name}_node")
+    parameter_entries: List[Any] = []
+    loaded_parameters = _load_parameters_from_file(params_file, node_name)
+    if loaded_parameters:
+        parameter_entries.append(loaded_parameters)
+    inline_parameters = node_cfg.get("ros__parameters", {})
+    if inline_parameters:
+        parameter_entries.append(inline_parameters)
+
+    parameter_list = _namespace_frame_ids(parameter_entries, global_namespace)
 
     return [
         Node(
             package="pointcloud_to_laserscan",
             executable="pointcloud_to_laserscan_node",
-            name=node_cfg.get("name", "pointcloud_to_laserscan_node"),
-            parameters=[params_file],
+            name=node_name,
+            parameters=parameter_list,
             remappings=[("cloud_in", cloud_topic), ("scan", scan_topic)],
+            namespace=node_namespace,
             output=node_cfg.get("output", "screen"),
         )
     ]
+
+
+def _create_pointcloud_concatenate_nodes(config: Dict[str, Any], global_namespace: str) -> List[Node]:
+    node_cfg = _component_config(config, "pointcloud_concatenate")
+    params_file = node_cfg.get("params_file")
+    inline_parameters = node_cfg.get("ros__parameters", {})
+    remappings = node_cfg.get("remappings", [])
+    if isinstance(remappings, dict):
+        remappings = list(remappings.items())
+
+    node_parameters: List[Any] = []
+    if params_file:
+        loaded_parameters = _load_parameters_from_file(params_file, node_cfg.get("name", "pointcloud_concatenate"))
+        if loaded_parameters:
+            node_parameters.append(loaded_parameters)
+    if inline_parameters:
+        node_parameters.append(inline_parameters)
+
+    node_namespace = _resolve_namespace(global_namespace, node_cfg.get("namespace"))
+
+    node_parameters = _namespace_frame_ids(node_parameters, global_namespace)
+    
+    return [
+        Node(
+            package=node_cfg.get("package", "pointcloud_concatenate"),
+            executable=node_cfg.get("executable", "pointcloud_concatenate_node"),
+            name=node_cfg.get("name", "pointcloud_concatenate"),
+            parameters=node_parameters,
+            remappings=remappings,
+            namespace=node_namespace,
+            output=node_cfg.get("output", "screen"),
+        )
+    ]
+
+
+def _create_pointcloud_filter_nodes(config: Dict[str, Any], global_namespace: str) -> List[Node]:
+    node_cfg = _component_config(config, "pointcloud_filter")
+    params_file = node_cfg.get("params_file")
+    inline_parameters = node_cfg.get("ros__parameters", {})
+    remappings = node_cfg.get("remappings", [])
+    if isinstance(remappings, dict):
+        remappings = list(remappings.items())
+
+    node_parameters: List[Any] = []
+    node_name = node_cfg.get("name", "pointcloud_filter")
+    if params_file:
+        loaded_parameters = _load_parameters_from_file(params_file, node_name)
+        if loaded_parameters:
+            node_parameters.append(loaded_parameters)
+    if inline_parameters:
+        node_parameters.append(inline_parameters)
+
+    node_namespace = _resolve_namespace(global_namespace, node_cfg.get("namespace"))
+    node_parameters = _namespace_frame_ids(node_parameters, global_namespace)
+
+    return [
+        Node(
+            package=node_cfg.get("package", "pointcloud_filter"),
+            executable=node_cfg.get("executable", "pointcloud_filter_node"),
+            name=node_name,
+            parameters=node_parameters,
+            remappings=remappings,
+            namespace=node_namespace,
+            output=node_cfg.get("output", "screen"),
+        )
+    ]
+
+
+def _build_robot_description_parameter(override: Any, default_value: ParameterValue) -> Dict[str, Any]:
+    if override is None:
+        return {"robot_description": default_value}
+    command_path = _extract_xacro_target(override) if isinstance(override, str) else None
+    if command_path:
+        return {
+            "robot_description": ParameterValue(
+                Command([FindExecutable(name="xacro"), " ", command_path]),
+                value_type=str,
+            )
+        }
+    return {"robot_description": override}
+
+
+def _extract_xacro_target(value: str) -> str | None:
+    stripped = value.strip()
+    if not (stripped.startswith("$(xacro") and stripped.endswith(")")):
+        return None
+    inner = stripped[len("$(xacro") : -1].strip()
+    return inner or None
 
 
 def _discover_default_config(filename: str) -> str:
@@ -189,6 +317,11 @@ def _component_config(config: Dict[str, Any], name: str) -> Dict[str, Any]:
         return {"enabled": entry}
     return entry or {}
 
+def _component_variant_names(config: Dict[str, Any], base_name: str) -> List[str]:
+    components = config.get("components", {})
+    suffix = f"{base_name}_"
+    return [name for name in components.keys() if name == base_name or name.startswith(suffix)]
+
 
 def _component_enabled(config: Dict[str, Any], name: str) -> bool:
     entry = _component_config(config, name)
@@ -206,3 +339,142 @@ def _load_topics(config_path: str) -> Dict[str, Any]:
     params = node.get("ros__parameters", {})
     topics = params.get("topics", {})
     return topics if isinstance(topics, dict) else {}
+
+
+def _load_yaml_file(path: Path) -> Dict[str, Any]:
+    if not path.exists():
+        return {}
+    with open(path, "r", encoding="utf-8") as config_file:
+        data = yaml.safe_load(config_file) or {}
+    return data if isinstance(data, dict) else {}
+
+
+def _load_parameters_from_file(path_str: str, node_name: str) -> Dict[str, Any]:
+    path = Path(path_str)
+    data = _load_yaml_file(path)
+    if not data:
+        return {}
+    candidates = [
+        node_name,
+        f"/{node_name}",
+        "/**",
+    ]
+    entry: Dict[str, Any] = {}
+    for key in candidates:
+        maybe_entry = data.get(key)
+        if isinstance(maybe_entry, dict):
+            entry = maybe_entry
+            break
+    if not entry:
+        # Fall back to the first dict entry, if any.
+        for maybe_entry in data.values():
+            if isinstance(maybe_entry, dict):
+                entry = maybe_entry
+                break
+    if not entry:
+        return {}
+    ros_parameters = entry.get("ros__parameters")
+    if isinstance(ros_parameters, dict):
+        return ros_parameters
+    return entry
+
+
+def _namespace_frame_ids(parameters: List[Any], global_namespace: str) -> List[Any]:
+    if not global_namespace or not parameters:
+        return parameters
+    return [_apply_frame_id_namespace(entry, global_namespace) for entry in parameters]
+
+
+def _apply_frame_id_namespace(entry: Any, global_namespace: str) -> Any:
+    if isinstance(entry, dict):
+        updated: Dict[Any, Any] = {}
+        for key, value in entry.items():
+            if key == "frame_id":
+                updated[key] = _namespaced_frame_id(global_namespace, value)
+            elif key == "target_frame":
+                updated[key] = _namespaced_target_frame(global_namespace, value)
+            elif _is_topic_key(key):
+                updated[key] = _namespaced_topic(global_namespace, value)
+            else:
+                updated[key] = _apply_frame_id_namespace(value, global_namespace)
+        return updated
+    if isinstance(entry, list):
+        return [_apply_frame_id_namespace(item, global_namespace) for item in entry]
+    return entry
+
+
+def _namespaced_frame_id(global_namespace: str, frame_id_value: Any) -> Any:
+    if not isinstance(frame_id_value, str):
+        return frame_id_value
+    candidate = _clean_frame_reference(frame_id_value)
+    if not global_namespace:
+        return candidate
+    namespace_without_slash = global_namespace.strip("/")
+    if not candidate:
+        return namespace_without_slash
+    if candidate == namespace_without_slash or candidate.startswith(f"{namespace_without_slash}/"):
+        return candidate
+    return f"{namespace_without_slash}/{candidate}"
+
+
+def _namespaced_target_frame(global_namespace: str, target_value: Any) -> Any:
+    if not isinstance(target_value, str):
+        return target_value
+    candidate = _clean_frame_reference(target_value)
+    if not global_namespace:
+        return candidate
+    namespace_without_slash = global_namespace.strip("/")
+    if not candidate:
+        return namespace_without_slash
+    if candidate == namespace_without_slash or candidate.startswith(f"{namespace_without_slash}/"):
+        return candidate
+    return f"{namespace_without_slash}/{candidate}"
+
+
+def _clean_frame_reference(value: str) -> str:
+    stripped = value.strip()
+    return stripped.strip("/") if stripped else ""
+
+
+def _is_topic_key(key: Any) -> bool:
+    if not isinstance(key, str):
+        return False
+    lowered = key.lower()
+    return lowered.endswith("_topic") or lowered == "topic"
+
+
+def _namespaced_topic(global_namespace: str, topic_value: Any) -> Any:
+    if not isinstance(topic_value, str):
+        return topic_value
+    topic = topic_value.strip()
+    if not topic:
+        return topic
+    if topic.startswith("/"):
+        return topic
+    if not global_namespace:
+        return topic
+    base = global_namespace.rstrip("/")
+    return f"{base}/{topic}"
+
+
+def _normalize_namespace(value: Any) -> str:
+    if not isinstance(value, str):
+        return ""
+    stripped = value.strip()
+    if not stripped or stripped == "/":
+        return ""
+    if not stripped.startswith("/"):
+        stripped = "/" + stripped
+    while len(stripped) > 1 and stripped.endswith("/"):
+        stripped = stripped[:-1]
+    return stripped
+
+
+def _resolve_namespace(global_namespace: str, component_namespace: Any) -> str:
+    component_ns = _normalize_namespace(component_namespace)
+    if not global_namespace:
+        return component_ns
+    if not component_ns:
+        return global_namespace
+    # component_ns already starts with '/', so skip duplicate slash.
+    return f"{global_namespace}{component_ns}"

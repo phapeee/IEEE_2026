@@ -1,0 +1,8 @@
+pointcloud_concatenate:
+  ros__parameters:
+    target_frame: "base_link"
+    clouds: 2
+    hz: 10.0
+    cloud_out_topic: "/bot_0/depth_pcl"
+    cloud_in2_topic: "/bot_0/left_depth_pcl"
+    cloud_in1_topic: "/bot_0/right_depth_pcl"

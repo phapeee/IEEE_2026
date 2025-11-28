@@ -1,17 +1,15 @@
 pointcloud_to_laserscan_node:
   ros__parameters:
-    min_height: -2.5
-    max_height: 2.5
+    min_height: 0.025
+    max_height: 0.030
     angle_min: -3.14159
     angle_max: 3.14159
-    angle_increment: 0.01745
-    # queue_size: 4
+    angle_increment: 0.00872664626
+    queue_size: 4
     scan_time: 0.033
-    range_min: 1.0
-    range_max: 150.0
-    # target_frame: base_link
+    # range_min: 0.01
+    range_max: 1.50
+    target_frame: base_link
     transform_tolerance: 0.01
     use_inf: true
-    topics:
-      cloud_in: /bot_0/left_depth_pcl
-      scan: /bot_0/laser_scan
+

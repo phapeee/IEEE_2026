@@ -1,0 +1,21 @@
+pointcloud_filter:
+  ros__parameters:
+    target_frame: base_link
+    cloud_in1_topic: left_depth_pcl
+    cloud_in2_topic: right_depth_pcl
+    output_topic: filtered_point
+    output_pointcloud_topic: debug/pointcloud_filter/output_cloud
+    debug_output: true
+    debug_topic_prefix: debug/pointcloud_filter
+    min_height: 0.033
+    max_height: 0.065
+    min_range: 0.0
+    max_range: 0.35
+    cluster_tolerance: 0.003
+    min_cluster_size: 5
+    center_method: midpoint
+    denoise_enabled: false
+    noise_radius: 0.1
+    noise_min_neighbors: 2
+    sync_timeout: 0.25
+    process_rate: 10.0

@@ -13,6 +13,7 @@ ros2 launch robot_main robot_main.launch.py
 The launch file now reads every node/component definition from `config/robot_main.yaml`. Each entry under the top-level `components` block declares whether the component is enabled plus any node-specific arguments. Leave the `robot_main_config` argument unset to use this default file or point it to an alternative YAML when you want different combinations of components.
 
 ```yaml
+namespace: "/bot_0"
 components:
   controller_manager:
     enabled: true
@@ -22,16 +23,31 @@ components:
     enabled: true
   robot_state_publisher:
     enabled: true
+    namespace: controller_manager
   cmd_vel_relay:
     enabled: true
     ros__parameters:
       input_topic: "/cmd_vel"
       output_topic: "/mecanum_controller/reference"
-  pointcloud_to_laserscan:
+  pointcloud_concatenate:
+    enabled: true
+    params_file: "/ws/config/pointcloud_concatenate.yaml"
+  pointcloud_to_laserscan_left:
     enabled: false
+    params_file: "/ws/config/pointcloud_to_laserscan_left.yaml"
+    cloud_topic: "left_depth_pcl"
+    scan_topic: "left_laser_scan"
+  pointcloud_to_laserscan_right:
+    enabled: false
+    params_file: "/ws/config/pointcloud_to_laserscan_right.yaml"
+    cloud_topic: "right_depth_pcl"
+    scan_topic: "right_laser_scan"
+  pointcloud_filter:
+    enabled: false
+    params_file: "/ws/config/pointcloud_filter.yaml"
 ```
 
-Set `enabled` to `false` to keep a component out of the launch description. Optional fields let you override names, controller-manager namespaces, parameter overrides, or remappings on a per-component basis.
+Set `enabled` to `false` to keep a component out of the launch description. Optional fields let you override names, controller-manager namespaces, parameter overrides, or remappings on a per-component basis. The optional top-level `namespace` entry defines the global namespace applied to every launched node; relative topic names are resolved inside this namespace so you can avoid repeating prefixes like `/bot_0` throughout the component definitions.
 
 ## Sending velocity commands
 
@@ -90,4 +106,16 @@ Each requested header produces a histogram with an overlaid normal distribution 
 
 ### pointcloud_to_laserscan helper
 
-Update `config/pointcloud_to_laserscan.yaml` with parameters such as `min_height`, `max_height`, `angle_*`, `range_*`, `scan_time`, `target_frame`, and the nested `topics` block (holding `cloud_in`/`scan`). Enable the `pointcloud_to_laserscan` component inside `config/robot_main.yaml` to launch the conversion node alongside the rest of the system. You can also pin a dedicated `params_file`, `cloud_topic`, or `scan_topic` override inside that component block when you want to diverge from the defaults baked into the pointcloud config file.
+Update `config/pointcloud_concatenate.yaml` to change merge topics, target frame, and output settings for the concatenation node. Likewise, adjust the left/right copies of the pointcloud-to-laserscan config (e.g., `config/pointcloud_to_laserscan_left.yaml` and `_right.yaml`) with parameters such as `min_height`, `max_height`, `angle_*`, `range_*`, `scan_time`, `target_frame`, and the nested `topics` block (holding `cloud_in`/`scan`). Enable each component inside `config/robot_main.yaml` to launch the corresponding node alongside the rest of the system, and override paths like `params_file`, `cloud_topic`, or `scan_topic` when you want to diverge from the defaults baked into the pointcloud configs.
+
+
+<!-- ros2 run robot_state_publisher robot_state_publisher \
+  --ros-args -p robot_description:="$(xacro /ws/config/mini.urdf)" \
+  -r /robot_description:=/controller_manager/robot_description
+
+
+ros2 run controller_manager ros2_control_node \
+  --ros-args --params-file /ws/config/ros2_controllers.yaml
+
+ros2 run controller_manager spawner joint_state_broadcaster
+ros2 run controller_manager spawner mecanum_controller -->
