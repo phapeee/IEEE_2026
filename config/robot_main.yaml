@@ -1,21 +1,5 @@
 namespace: "bot_0"
 components:
-  controller_manager:
-    enabled: true
-    params_file:
-      - "/ws/config/ros2_controllers.yaml"
-  joint_state_broadcaster_spawner:
-    enabled: true
-    controller_name: joint_state_broadcaster
-    controller_manager: /bot_0/controller_manager
-  mecanum_controller_spawner:
-    enabled: true
-    controller_name: mecanum_controller
-    controller_manager: /bot_0/controller_manager
-  robot_state_publisher:
-    enabled: true
-    parameters:
-      publish_robot_description: true
   cmd_vel_relay:
     enabled: true
     name: cmd_vel_relay
@@ -23,27 +7,53 @@ components:
       input_topic: "/cmd_vel"
       output_topic: "/mecanum_controller/reference"
       frame_id: "base_link"
+      
+  controller_manager:
+    enabled: true
+    params_file:
+      - "/ws/config/ros2_controllers_bot_0.yaml"
+
+  joint_state_broadcaster_spawner:
+    enabled: true
+    controller_name: joint_state_broadcaster
+    controller_manager: /bot_0/controller_manager
+
+  mecanum_controller_spawner:
+    enabled: true
+    controller_name: mecanum_controller
+    controller_manager: /bot_0/controller_manager
+
+  robot_state_publisher:
+    enabled: true
+    parameters:
+      publish_robot_description: true
+
+  uwb_triangulaion:
+    enabled: true
+    params_file: "/ws/config/uwb_config.yaml"
+
+  robot_localization:
+    enabled: true
+    params_file: "/ws/config/robot_localization.yaml"
+
   pointcloud_concatenate:
     enabled: false
     name: pointcloud_concatenate
     params_file: "/ws/config/pointcloud_concatenate.yaml"
+
   pointcloud_to_laserscan_left:
     enabled: false
     params_file: "/ws/config/pointcloud_to_laserscan.yaml"
     cloud_topic: "left_depth_pcl"
     scan_topic: "left_laser_scan"
+
   pointcloud_to_laserscan_right:
     enabled: false
     params_file: "/ws/config/pointcloud_to_laserscan.yaml"
     cloud_topic: "right_depth_pcl"
     scan_topic: "right_laser_scan"
+
   pointcloud_filter:
     enabled: false
     params_file: "/ws/config/pointcloud_filter.yaml"
-  robot_localization:
-    enabled: false
-    params_file: "/ws/config/robot_localization.yaml"
-  uwb_triangulaion:
-    enabled: false
-    params_file: "/ws/config/uwb_config.yaml"
 # I have /bot_0/imu_data (sensor_msgs/msg/Imu), /bot_0/uwb_data (uwb_msgs/msg/IntFloatArrayStamped), 

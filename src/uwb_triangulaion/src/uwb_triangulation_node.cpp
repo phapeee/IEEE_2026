@@ -2,6 +2,7 @@
 #include <cmath>
 #include <cstdint>
 #include <functional>
+#include <memory>
 #include <stdexcept>
 #include <string>
 #include <unordered_map>
@@ -70,7 +71,6 @@ public:
     config_file_path_ = declare_parameter<std::string>(
       "config_file", "/ws/config/uwb_config.yaml");
     loadConfiguration(config_file_path_);
-
     RCLCPP_INFO(get_logger(), "Subscribed to %s, publishing to %s", input_topic_.c_str(),
       output_topic_.c_str());
 
@@ -90,6 +90,9 @@ private:
       throw std::runtime_error("Input topic is empty in configuration file.");
     }
     output_topic_ = deriveOutputTopic(input_topic_);
+    frame_id_ = get_or<std::string>(config["frame_id"], "");
+    offset_x_ = get_or<double>(config["offset_x"], 0.0);
+    offset_y_ = get_or<double>(config["offset_y"], 0.0);
 
     const YAML::Node anchors = config["anchors"];
     if (!anchors || anchors.size() < 2) {
@@ -165,8 +168,11 @@ private:
       const auto [x, y] = estimatePosition(measurements);
       geometry_msgs::msg::PoseWithCovarianceStamped pose_msg;
       pose_msg.header = msg->header;
-      pose_msg.pose.pose.position.x = x;
-      pose_msg.pose.pose.position.y = y;
+      if (!frame_id_.empty()) {
+        pose_msg.header.frame_id = frame_id_;
+      }
+      pose_msg.pose.pose.position.x = x + offset_x_;
+      pose_msg.pose.pose.position.y = y + offset_y_;
       pose_msg.pose.pose.position.z = 0.0;
       pose_msg.pose.pose.orientation.x = 0.0;
       pose_msg.pose.pose.orientation.y = 0.0;
@@ -283,6 +289,9 @@ private:
   std::string config_file_path_;
   std::string input_topic_;
   std::string output_topic_;
+  std::string frame_id_;
+  double offset_x_{0.0};
+  double offset_y_{0.0};
   int sign_x_{0};
   int sign_y_{0};
   std::unordered_map<int32_t, AnchorInfo> anchors_;
