@@ -110,7 +110,7 @@ Update `config/pointcloud_concatenate.yaml` to change merge topics, target frame
 
 
 <!-- ros2 run robot_state_publisher robot_state_publisher \
-  --ros-args -p robot_description:="$(xacro /ws/config/mini.urdf)" \
+  --ros-args -p robot_description:="$(xacro /ws/config/mini_0.urdf)" \
   -r /robot_description:=/controller_manager/robot_description
 
 

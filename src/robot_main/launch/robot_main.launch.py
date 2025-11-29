@@ -16,6 +16,8 @@ _COMPONENT_DEFAULTS: Dict[str, bool] = {
     "pointcloud_to_laserscan": False,
     "pointcloud_concatenate": False,
     "pointcloud_filter": False,
+    "robot_localization": False,
+    "uwb_triangulaion": False,
 }
 
 
@@ -57,19 +59,24 @@ def _launch_components(context, *_: Any) -> List[Node]:
     mecanum_config_path = context.perform_substitution(LaunchConfiguration("mecanum_controller_config"))
     robot_description_file = context.perform_substitution(LaunchConfiguration("robot_description_file"))
 
-    robot_description = ParameterValue(
-        Command([FindExecutable(name="xacro"), " ", robot_description_file]),
-        value_type=str,
-    )
-
     config = _load_robot_main_config(config_path)
     global_namespace = _normalize_namespace(config.get("namespace", ""))
+    robot_namespace_arg = global_namespace.strip("/") if global_namespace else ""
+    xacro_command = [FindExecutable(name="xacro"), " ", robot_description_file]
+    if robot_namespace_arg:
+        xacro_command.extend([" ", f"robot_namespace:={robot_namespace_arg}"])
+
+    robot_description = ParameterValue(
+        Command(xacro_command),
+        value_type=str,
+    )
     nodes: List[Node] = []
 
     if _component_enabled(config, "controller_manager"):
         controller_cfg = _component_config(config, "controller_manager")
         controller_parameters = controller_cfg.get("parameters", {})
-        cm_parameters = [{"robot_description": robot_description}, mecanum_config_path]
+        controller_params_files = _controller_manager_param_sources(controller_cfg, mecanum_config_path)
+        cm_parameters = [{"robot_description": robot_description}, *controller_params_files]
         if controller_parameters:
             cm_parameters.append(controller_parameters)
         cm_namespace = _resolve_namespace(global_namespace, controller_cfg.get("namespace"))
@@ -117,7 +124,7 @@ def _launch_components(context, *_: Any) -> List[Node]:
 
     if _component_enabled(config, "robot_state_publisher"):
         rsp_cfg = _component_config(config, "robot_state_publisher")
-        namespace = _resolve_namespace(global_namespace, rsp_cfg.get("namespace", "controller_manager"))
+        namespace = _resolve_namespace(global_namespace, rsp_cfg.get("namespace"))
         rsp_parameters = {"publish_robot_description": True}
         rsp_parameters.update(rsp_cfg.get("parameters", {}))
         robot_description_override = rsp_parameters.pop("robot_description", None)
@@ -163,6 +170,12 @@ def _launch_components(context, *_: Any) -> List[Node]:
     if _component_enabled(config, "pointcloud_filter"):
         nodes.extend(_create_pointcloud_filter_nodes(config, global_namespace))
 
+    if _component_enabled(config, "robot_localization"):
+        nodes.extend(_create_robot_localization_nodes(config, global_namespace))
+
+    if _component_enabled(config, "uwb_triangulaion"):
+        nodes.extend(_create_uwb_triangulaion_nodes(config, global_namespace))
+
     return nodes
 
 
@@ -201,6 +214,15 @@ def _create_pointcloud_to_laserscan_nodes(config: Dict[str, Any], global_namespa
             output=node_cfg.get("output", "screen"),
         )
     ]
+
+
+def _controller_manager_param_sources(controller_cfg: Dict[str, Any], default_config: str) -> List[str]:
+    params_entry = controller_cfg.get("params_file")
+    if isinstance(params_entry, list):
+        return params_entry or [default_config]
+    if isinstance(params_entry, str) and params_entry.strip():
+        return [params_entry]
+    return [default_config]
 
 
 def _create_pointcloud_concatenate_nodes(config: Dict[str, Any], global_namespace: str) -> List[Node]:
@@ -262,6 +284,73 @@ def _create_pointcloud_filter_nodes(config: Dict[str, Any], global_namespace: st
             executable=node_cfg.get("executable", "pointcloud_filter_node"),
             name=node_name,
             parameters=node_parameters,
+            remappings=remappings,
+            namespace=node_namespace,
+            output=node_cfg.get("output", "screen"),
+        )
+    ]
+
+
+def _create_robot_localization_nodes(config: Dict[str, Any], global_namespace: str) -> List[Node]:
+    node_cfg = _component_config(config, "robot_localization")
+    params_file = node_cfg.get("params_file", _discover_default_config("robot_localization.yaml"))
+    inline_parameters = node_cfg.get("ros__parameters", {})
+    remappings = node_cfg.get("remappings", [])
+    if isinstance(remappings, dict):
+        remappings = list(remappings.items())
+
+    node_name = node_cfg.get("name", "ekf_filter_node")
+    parameter_entries: List[Any] = []
+    if params_file:
+        loaded_parameters = _load_parameters_from_file(params_file, node_name)
+        if loaded_parameters:
+            parameter_entries.append(loaded_parameters)
+    if inline_parameters:
+        parameter_entries.append(inline_parameters)
+
+    node_namespace = _resolve_namespace(global_namespace, node_cfg.get("namespace"))
+    parameter_entries = _namespace_frame_ids(parameter_entries, global_namespace)
+
+    return [
+        Node(
+            package=node_cfg.get("package", "robot_localization"),
+            executable=node_cfg.get("executable", "ekf_node"),
+            name=node_name,
+            parameters=parameter_entries,
+            remappings=remappings,
+            namespace=node_namespace,
+            output=node_cfg.get("output", "screen"),
+        )
+    ]
+
+
+def _create_uwb_triangulaion_nodes(config: Dict[str, Any], global_namespace: str) -> List[Node]:
+    node_cfg = _component_config(config, "uwb_triangulaion")
+    params_file = node_cfg.get("params_file", _discover_default_config("uwb_config.yaml"))
+    inline_parameters = node_cfg.get("ros__parameters", {})
+    remappings = node_cfg.get("remappings", [])
+    if isinstance(remappings, dict):
+        remappings = list(remappings.items())
+
+    base_parameters: Dict[str, Any] = {}
+    if params_file:
+        base_parameters["config_file"] = params_file
+
+    parameter_entries: List[Any] = []
+    if base_parameters:
+        parameter_entries.append(base_parameters)
+    if inline_parameters:
+        parameter_entries.append(inline_parameters)
+
+    node_namespace = _resolve_namespace(global_namespace, node_cfg.get("namespace"))
+    parameter_entries = _namespace_frame_ids(parameter_entries, global_namespace)
+
+    return [
+        Node(
+            package=node_cfg.get("package", "uwb_triangulaion"),
+            executable=node_cfg.get("executable", "uwb_triangulaion_node"),
+            name=node_cfg.get("name", "uwb_triangulaion_node"),
+            parameters=parameter_entries,
             remappings=remappings,
             namespace=node_namespace,
             output=node_cfg.get("output", "screen"),
@@ -393,6 +482,8 @@ def _apply_frame_id_namespace(entry: Any, global_namespace: str) -> Any:
                 updated[key] = _namespaced_frame_id(global_namespace, value)
             elif key == "target_frame":
                 updated[key] = _namespaced_target_frame(global_namespace, value)
+            elif _is_frame_reference_key(key):
+                updated[key] = _namespaced_frame_id(global_namespace, value)
             elif _is_topic_key(key):
                 updated[key] = _namespaced_topic(global_namespace, value)
             else:
@@ -440,7 +531,19 @@ def _is_topic_key(key: Any) -> bool:
     if not isinstance(key, str):
         return False
     lowered = key.lower()
-    return lowered.endswith("_topic") or lowered == "topic"
+    if lowered.endswith("_topic") or lowered == "topic":
+        return True
+    for prefix in ("imu", "odom", "pose", "twist", "accel", "gps", "wheel", "vo", "visual_odom", "range"):
+        if lowered.startswith(prefix) and lowered[len(prefix) :].isdigit():
+            return True
+    return False
+
+
+def _is_frame_reference_key(key: Any) -> bool:
+    if not isinstance(key, str):
+        return False
+    lowered = key.lower()
+    return lowered.endswith("_frame")
 
 
 def _namespaced_topic(global_namespace: str, topic_value: Any) -> Any:

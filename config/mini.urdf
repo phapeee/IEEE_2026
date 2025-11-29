@@ -1,11 +1,81 @@
 <?xml version="1.0"?>
-<robot name="mini_clean" xmlns:xacro="http://www.ros.org/wiki/xacro">
-  <xacro:include filename="mini_base.urdf"/>
-  <xacro:include filename="mini_wheel_links.urdf"/>
-  <xacro:include filename="mini_wheel_joints.urdf"/>
+<robot name="Mini" xmlns:xacro="http://www.ros.org/wiki/xacro">
+
+  <xacro:arg name="robot_namespace" default=""/>
+  <xacro:property name="robot_ns" value="$(arg robot_namespace)"/>
+  <xacro:property name="ns_prefix" value="${robot_ns + '/' if robot_ns else ''}"/>
+
   <xacro:include filename="mini_ros2_control.urdf"/>
-  <xacro:mini_base_description/>
-  <xacro:mini_wheel_links/>
-  <xacro:mini_wheel_joints/>
-  <xacro:mini_ros2_control/>
+
+  <!-- Links used in the kinematic tree -->
+  <link name="${ns_prefix}left_cam"/>
+  <link name="${ns_prefix}base_link"/>
+  <link name="${ns_prefix}right_cam"/>
+  <link name="${ns_prefix}rear_right_wheel_link"/>
+  <link name="${ns_prefix}rear_left_wheel_link"/>
+  <link name="${ns_prefix}front_left_wheel_link"/>
+  <link name="${ns_prefix}front_right_wheel_link"/>
+  <link name="${ns_prefix}left_ir_sensor"/>
+  <link name="${ns_prefix}right_ir_sensor"/>
+
+  <!-- base_link -> cameras -->
+  <joint name="Left_Cam" type="fixed">
+    <origin xyz="0.039709 -0.066324 0.027"
+            rpy="1.5707963267948968 0.0 -0.4363323129987227"/>
+    <parent link="${ns_prefix}base_link"/>
+    <child link="${ns_prefix}left_cam"/>
+  </joint>
+
+  <joint name="Right_Cam" type="fixed">
+    <origin xyz="-0.03970 -0.066324 0.027"
+            rpy="-1.5707963267948966 0.0 -2.705260340591013"/>
+    <parent link="${ns_prefix}base_link"/>
+    <child link="${ns_prefix}right_cam"/>
+  </joint>
+
+  <!-- base_link -> wheel stacks -->
+  <joint name="Rear_Right_Wheel" type="continuous">
+    <origin xyz="0.0582 0.039 0.00965"
+            rpy="1.5707963267948963 0.0 0.0"/>
+    <parent link="${ns_prefix}base_link"/>
+    <child link="${ns_prefix}rear_right_wheel_link"/>
+    <axis xyz="0.0 -1.0 0.0"/>
+  </joint>
+
+  <joint name="Rear_Left_Wheel" type="continuous">
+    <origin xyz="-0.0582 0.039 0.00965"
+            rpy="1.5707963267948966 0.0 3.141592653589793"/>
+    <parent link="${ns_prefix}base_link"/>
+    <child link="${ns_prefix}rear_left_wheel_link"/>
+    <axis xyz="0.0 1.0 0.0"/>
+  </joint>
+
+  <joint name="Front_Left_Wheel" type="continuous">
+    <origin xyz="-0.0582 -0.039 0.00965"
+            rpy="1.5707963267948963 0.0 3.141592653589793"/>
+    <parent link="${ns_prefix}base_link"/>
+    <child link="${ns_prefix}front_left_wheel_link"/>
+    <axis xyz="0.0 1.0 0.0"/>
+  </joint>
+
+  <joint name="Front_Right_Wheel" type="continuous">
+    <origin xyz="0.0582 -0.039 0.00965"
+            rpy="1.5707963267948966 0.0 0.0"/>
+    <parent link="${ns_prefix}base_link"/>
+    <child link="${ns_prefix}front_right_wheel_link"/>
+    <axis xyz="0.0 -1.0 0.0"/>
+  </joint>
+
+  <joint name="base_link_Right-Avoidance-Sensor" type="fixed">
+    <origin xyz="-0.05400000000000011 0.06250000000000001 0.020870000000000007" rpy="0.0 0.0 0.0" />
+    <parent link="${ns_prefix}base_link" />
+    <child link="${ns_prefix}right_ir_sensor" />
+  </joint>
+
+  <joint name="base_link_Left-Avoidance-Sensor" type="fixed">
+    <origin xyz="0.05399999999999989 0.06249999999999997 0.020870000000000007" rpy="0.0 0.0 0.0" />
+    <parent link="${ns_prefix}base_link" />
+    <child link="${ns_prefix}left_ir_sensor" />
+  </joint>
+  <xacro:mini_ros2_control robot_namespace="${robot_ns}"/>
 </robot>

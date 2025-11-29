@@ -49,6 +49,7 @@ private:
   rclcpp::Publisher<sensor_msgs::msg::JointState>::SharedPtr command_publisher_;
 
   std::vector<std::string> joint_names_;
+  std::vector<std::string> hardware_joint_names_;
   std::unordered_map<std::string, size_t> joint_index_;
   std::vector<double> position_states_;
   std::vector<double> velocity_states_;

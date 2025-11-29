@@ -51,14 +51,24 @@ hardware_interface::CallbackReturn IsaacTopicHardware::on_init(
   }
 
   joint_names_.reserve(info_.joints.size());
+  hardware_joint_names_.reserve(info_.joints.size());
   for (const auto & joint : info_.joints)
   {
     if (!validate_joint(joint))
     {
       return hardware_interface::CallbackReturn::ERROR;
     }
-    joint_index_[joint.name] = joint_names_.size();
+    const auto hw_name_it = joint.parameters.find("hardware_joint_name");
+    std::string hardware_name = (hw_name_it != joint.parameters.end() && !hw_name_it->second.empty()) ?
+      hw_name_it->second : joint.name;
+    if (joint_index_.count(hardware_name) != 0)
+    {
+      RCLCPP_ERROR(logger_, "Duplicate hardware joint name '%s' detected.", hardware_name.c_str());
+      return hardware_interface::CallbackReturn::ERROR;
+    }
+    joint_index_[hardware_name] = joint_names_.size();
     joint_names_.push_back(joint.name);
+    hardware_joint_names_.push_back(hardware_name);
   }
 
   position_states_.assign(joint_names_.size(), 0.0);
@@ -263,7 +273,7 @@ void IsaacTopicHardware::publish_command(const rclcpp::Time & now)
 
   sensor_msgs::msg::JointState cmd_msg;
   cmd_msg.header.stamp = now;
-  cmd_msg.name = joint_names_;
+  cmd_msg.name = hardware_joint_names_;
   cmd_msg.velocity = velocity_commands_;
 
   command_publisher_->publish(cmd_msg);

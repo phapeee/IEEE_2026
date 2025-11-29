@@ -13,10 +13,10 @@ mecanum_controller:
     reference_timeout: 0.25
 
     # JOINT NAMES – must exactly match your ros2_control joints
-    front_left_wheel_command_joint_name:  "TT_Motor_v12_0_Front_Left_Wheel"
-    front_right_wheel_command_joint_name: "TT_Motor_v12_3_Front_Right_Wheel"
-    rear_left_wheel_command_joint_name:   "TT_Motor_v12_1_Rear_Left_Wheel"
-    rear_right_wheel_command_joint_name:  "TT_Motor_v12_2_Rear_Right_Wheel"
+    front_left_wheel_command_joint_name:  "Front_Left_Wheel"
+    front_right_wheel_command_joint_name: "Front_Right_Wheel"
+    rear_left_wheel_command_joint_name:   "Rear_Left_Wheel"
+    rear_right_wheel_command_joint_name:  "Rear_Right_Wheel"
 
     # KINEMATICS BLOCK
     kinematics:
