@@ -146,7 +146,7 @@ def _launch_components(context, *_: Any) -> List[Node]:
 
     if _component_enabled(config, "cmd_vel_relay"):
         relay_cfg = _component_config(config, "cmd_vel_relay")
-        relay_parameters = relay_cfg.get("ros__parameters", {})
+        relay_parameters = _namespaced_cmd_vel_topics(relay_cfg.get("ros__parameters", {}), global_namespace)
         relay_namespace = _resolve_namespace(global_namespace, relay_cfg.get("namespace"))
         relay_parameter_list = _namespace_frame_ids([relay_parameters], global_namespace)
         nodes.append(
@@ -525,6 +525,37 @@ def _namespaced_target_frame(global_namespace: str, target_value: Any) -> Any:
 def _clean_frame_reference(value: str) -> str:
     stripped = value.strip()
     return stripped.strip("/") if stripped else ""
+
+
+def _namespaced_cmd_vel_topics(relay_parameters: Any, global_namespace: str) -> Any:
+    """Ensure cmd_vel_relay topic parameters get the global namespace prefix."""
+    if not isinstance(relay_parameters, dict):
+        return relay_parameters
+    if not global_namespace:
+        return relay_parameters
+    namespaced = dict(relay_parameters)
+    for topic_key in ("input_topic", "output_topic"):
+        if topic_key in namespaced:
+            namespaced[topic_key] = _force_namespaced_topic(global_namespace, namespaced[topic_key])
+    return namespaced
+
+
+def _force_namespaced_topic(global_namespace: str, topic_value: Any) -> Any:
+    """Prefix a topic with the global namespace even if it was provided as absolute."""
+    if not isinstance(topic_value, str):
+        return topic_value
+    topic = topic_value.strip()
+    if not topic:
+        return topic
+    base_ns = _normalize_namespace(global_namespace)
+    if not base_ns:
+        return topic
+    if topic == base_ns or topic.startswith(f"{base_ns}/"):
+        return topic
+    if topic.startswith("/"):
+        topic = topic[1:]
+    base = base_ns.rstrip("/")
+    return f"{base}/{topic}" if topic else base
 
 
 def _is_topic_key(key: Any) -> bool:

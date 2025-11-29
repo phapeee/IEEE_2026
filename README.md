@@ -54,7 +54,7 @@ Set `enabled` to `false` to keep a component out of the launch description. Opti
 Launch a keyboard teleop node (for example `teleop_twist_keyboard`) in another terminal to publish `geometry_msgs/Twist` messages to `/cmd_vel`. The `cmd_vel_relay` section in `config/robot_main.yaml` sets the relay node name, enable flag, and the `ros__parameters` block that defines the input/output topics (default `/cmd_vel` → `/mecanum_controller/reference`) plus the `frame_id` stamped on the outgoing `geometry_msgs/TwistStamped` messages:
 
 ```bash
-ros2 run teleop_twist_keyboard teleop_twist_keyboard
+ros2 run teleop_twist_keyboard teleop_twist_keyboard --ros-args -r __ns:=/bot_0
 ```
 
 The remaining controller manager nodes, spawners, and the `robot_state_publisher` are now launched automatically through `robot_main.launch.py`, so you can configure and enable them entirely via `robot_main.yaml` instead of running manual `ros2 run` commands.

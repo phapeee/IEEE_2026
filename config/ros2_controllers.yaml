@@ -7,6 +7,15 @@ controller_manager:
     joint_state_broadcaster:
       type: "joint_state_broadcaster/JointStateBroadcaster"
 
+/bot_0/controller_manager:
+  ros__parameters:
+    update_rate: 5 # Hz
+
+    mecanum_controller:
+      type: "mecanum_drive_controller/MecanumDriveController"
+    joint_state_broadcaster:
+      type: "joint_state_broadcaster/JointStateBroadcaster"
+
 mecanum_controller:
   ros__parameters:
     # How long a cmd is valid (seconds)
@@ -40,3 +49,43 @@ mecanum_controller:
     # Optional but recommended
     twist_covariance_diagonal: [0.1, 0.1, 0.1, 0.1, 0.1, 0.1]
     pose_covariance_diagonal:  [0.1, 0.1, 0.1, 0.1, 0.1, 0.1]
+
+/bot_0/mecanum_controller:
+  ros__parameters:
+    # How long a cmd is valid (seconds)
+    reference_timeout: 0.25
+
+    # JOINT NAMES – must exactly match your ros2_control joints
+    front_left_wheel_command_joint_name:  "Front_Left_Wheel"
+    front_right_wheel_command_joint_name: "Front_Right_Wheel"
+    rear_left_wheel_command_joint_name:   "Rear_Left_Wheel"
+    rear_right_wheel_command_joint_name:  "Rear_Right_Wheel"
+
+    # KINEMATICS BLOCK
+    kinematics:
+      # If base_link is exactly at the geometric center, keep all zeros
+      base_frame_offset: { x: 0.0, y: 0.0, theta: 0.0 }
+
+      # Your wheel radius
+      wheels_radius: 0.048
+
+      # L = half of front–rear distance, W = half of left–right distance
+      # wheel_separation_x = 2L = 0.50  -> L = 0.25
+      # wheel_separation_y = 2W = 0.40  -> W = 0.20
+      # sum_of_robot_center_projection_on_X_Y_axis = L + W = 0.45
+      sum_of_robot_center_projection_on_X_Y_axis: 0.0972
+
+    # FRAMES & TF
+    base_frame_id: "base_link"
+    odom_frame_id: "odom"
+    enable_odom_tf: true
+
+    # Optional but recommended
+    twist_covariance_diagonal: [0.1, 0.1, 0.1, 0.1, 0.1, 0.1]
+    pose_covariance_diagonal:  [0.1, 0.1, 0.1, 0.1, 0.1, 0.1]
+
+joint_state_broadcaster:
+  ros__parameters: {}
+
+/bot_0/joint_state_broadcaster:
+  ros__parameters: {}
