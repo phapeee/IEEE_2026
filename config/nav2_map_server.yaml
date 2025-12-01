@@ -1,0 +1,17 @@
+map_server:
+  ros__parameters:
+    # Use Gazebo/Isaac/etc. simulated time if needed
+    use_sim_time: false
+
+    # Path to the standard ROS map YAML (the one that points to the PGM/PNG)
+    yaml_filename: /ws/config/static_map.yaml
+
+    # TF / topic settings
+    frame_id: map           # map frame for the occupancy grid
+    topic_name: /map        # topic where the map is published
+
+    # Lifecycle convenience
+    autostart: true         # auto-configure & activate on startup
+
+    # Optional: map mode, usually "trinary" is fine
+    mode: trinary

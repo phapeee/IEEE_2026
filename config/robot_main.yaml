@@ -1,7 +1,7 @@
 namespace: "bot_0"
 components:
   cmd_vel_relay:
-    enabled: true
+    enabled: false
     name: cmd_vel_relay
     ros__parameters:
       input_topic: "/cmd_vel"
@@ -9,17 +9,17 @@ components:
       frame_id: "base_link"
       
   controller_manager:
-    enabled: true
+    enabled: false
     params_file:
       - "/ws/config/ros2_controllers_bot_0.yaml"
 
   joint_state_broadcaster_spawner:
-    enabled: true
+    enabled: false
     controller_name: joint_state_broadcaster
     controller_manager: /bot_0/controller_manager
 
   mecanum_controller_spawner:
-    enabled: true
+    enabled: false
     controller_name: mecanum_controller
     controller_manager: /bot_0/controller_manager
 
@@ -29,31 +29,43 @@ components:
       publish_robot_description: true
 
   uwb_triangulaion:
-    enabled: true
+    enabled: false
     params_file: "/ws/config/uwb_config.yaml"
 
   robot_localization:
-    enabled: true
+    enabled: false
     params_file: "/ws/config/robot_localization.yaml"
 
-  pointcloud_concatenate:
+  nav2_amcl:
+    enabled: false
+    params_file: "/ws/config/nav2_amcl.yaml"
+
+  nav2_map_server:
     enabled: true
+    params_file: "/ws/config/nav2_map_server.yaml"
+
+  nav2_lifecycle_manager:
+    enabled: true
+    params_file: "/ws/config/lifecycle_localization.yaml"
+
+  pointcloud_concatenate:
+    enabled: false
     name: pointcloud_concatenate
     params_file: "/ws/config/pointcloud_concatenate.yaml"
 
   pointcloud_to_laserscan_left:
-    enabled: false
+    enabled: true
     params_file: "/ws/config/pointcloud_to_laserscan.yaml"
     cloud_topic: "left_depth_pcl"
     scan_topic: "left_laser_scan"
 
   pointcloud_to_laserscan_right:
-    enabled: false
+    enabled: true
     params_file: "/ws/config/pointcloud_to_laserscan.yaml"
     cloud_topic: "right_depth_pcl"
     scan_topic: "right_laser_scan"
 
   pointcloud_filter:
-    enabled: true
+    enabled: false
     params_file: "/ws/config/pointcloud_filter.yaml"
 # I have /bot_0/imu_data (sensor_msgs/msg/Imu), /bot_0/uwb_data (uwb_msgs/msg/IntFloatArrayStamped), 

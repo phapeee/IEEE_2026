@@ -35,6 +35,6 @@ amcl:
     resample_interval: 1
 
     # Initial pose (optional – can also be set via /initialpose)
-    # initial_pose_x: 0.0
-    # initial_pose_y: 0.0
-    # initial_pose_a: 0.0
+    initial_pose_x: 0.1524
+    initial_pose_y: 0.1524
+    initial_pose_a: 1.5707963268

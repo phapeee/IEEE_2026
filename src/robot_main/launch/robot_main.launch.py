@@ -17,6 +17,9 @@ _COMPONENT_DEFAULTS: Dict[str, bool] = {
     "pointcloud_concatenate": False,
     "pointcloud_filter": False,
     "robot_localization": False,
+    "nav2_amcl": False,
+    "nav2_map_server": False,
+    "nav2_lifecycle_manager": False,
     "uwb_triangulaion": False,
 }
 
@@ -173,6 +176,15 @@ def _launch_components(context, *_: Any) -> List[Node]:
     if _component_enabled(config, "robot_localization"):
         nodes.extend(_create_robot_localization_nodes(config, global_namespace))
 
+    if _component_enabled(config, "nav2_amcl"):
+        nodes.extend(_create_nav2_amcl_nodes(config, global_namespace))
+
+    if _component_enabled(config, "nav2_map_server"):
+        nodes.extend(_create_nav2_map_server_nodes(config, global_namespace))
+
+    if _component_enabled(config, "nav2_lifecycle_manager"):
+        nodes.extend(_create_nav2_lifecycle_manager_nodes(config, global_namespace))
+
     if _component_enabled(config, "uwb_triangulaion"):
         nodes.extend(_create_uwb_triangulaion_nodes(config, global_namespace))
 
@@ -319,6 +331,105 @@ def _create_robot_localization_nodes(config: Dict[str, Any], global_namespace: s
             parameters=parameter_entries,
             remappings=remappings,
             namespace=node_namespace,
+            output=node_cfg.get("output", "screen"),
+        )
+    ]
+
+
+def _create_nav2_amcl_nodes(config: Dict[str, Any], global_namespace: str) -> List[Node]:
+    node_cfg = _component_config(config, "nav2_amcl")
+    params_file = node_cfg.get("params_file", _discover_default_config("nav2_amcl.yaml"))
+    inline_parameters = node_cfg.get("ros__parameters", {})
+    remappings = node_cfg.get("remappings", [])
+    if isinstance(remappings, dict):
+        remappings = list(remappings.items())
+
+    node_name = node_cfg.get("name", "amcl")
+    parameter_entries: List[Any] = []
+    if params_file:
+        loaded_parameters = _load_parameters_from_file(params_file, node_name)
+        if loaded_parameters:
+            parameter_entries.append(loaded_parameters)
+    if inline_parameters:
+        parameter_entries.append(inline_parameters)
+
+    node_namespace = _resolve_namespace(global_namespace, node_cfg.get("namespace"))
+    parameter_entries = _namespace_frame_ids(parameter_entries, global_namespace)
+
+    return [
+        Node(
+            package=node_cfg.get("package", "nav2_amcl"),
+            executable=node_cfg.get("executable", "amcl"),
+            name=node_name,
+            parameters=parameter_entries,
+            remappings=remappings,
+            namespace=node_namespace,
+            output=node_cfg.get("output", "screen"),
+        )
+    ]
+
+
+def _create_nav2_map_server_nodes(config: Dict[str, Any], global_namespace: str) -> List[Node]:
+    node_cfg = _component_config(config, "nav2_map_server")
+    params_file = node_cfg.get("params_file", _discover_default_config("nav2_map_server.yaml"))
+    inline_parameters = node_cfg.get("ros__parameters", {})
+    remappings = node_cfg.get("remappings", [])
+    if isinstance(remappings, dict):
+        remappings = list(remappings.items())
+
+    node_name = node_cfg.get("name", "map_server")
+    parameter_entries: List[Any] = []
+    if params_file:
+        loaded_parameters = _load_parameters_from_file(params_file, node_name)
+        if loaded_parameters:
+            parameter_entries.append(loaded_parameters)
+    if inline_parameters:
+        parameter_entries.append(inline_parameters)
+
+    # Map server publishes global /map so keep it outside robot namespace unless explicitly overridden.
+    component_namespace = _normalize_namespace(node_cfg.get("namespace"))
+    node_namespace = component_namespace
+
+    return [
+        Node(
+            package=node_cfg.get("package", "nav2_map_server"),
+            executable=node_cfg.get("executable", "map_server"),
+            name=node_name,
+            parameters=parameter_entries,
+            remappings=remappings,
+            namespace=node_namespace,
+            output=node_cfg.get("output", "screen"),
+        )
+    ]
+
+
+def _create_nav2_lifecycle_manager_nodes(config: Dict[str, Any], global_namespace: str) -> List[Node]:
+    node_cfg = _component_config(config, "nav2_lifecycle_manager")
+    params_file = node_cfg.get("params_file", _discover_default_config("lifecycle_localization.yaml"))
+    inline_parameters = node_cfg.get("ros__parameters", {})
+    remappings = node_cfg.get("remappings", [])
+    if isinstance(remappings, dict):
+        remappings = list(remappings.items())
+
+    node_name = node_cfg.get("name", "lifecycle_manager_localization")
+    parameter_entries: List[Any] = []
+    if params_file:
+        loaded_parameters = _load_parameters_from_file(params_file, node_name)
+        if loaded_parameters:
+            parameter_entries.append(loaded_parameters)
+    if inline_parameters:
+        parameter_entries.append(inline_parameters)
+
+    component_namespace = _normalize_namespace(node_cfg.get("namespace"))
+
+    return [
+        Node(
+            package=node_cfg.get("package", "nav2_lifecycle_manager"),
+            executable=node_cfg.get("executable", "lifecycle_manager"),
+            name=node_name,
+            parameters=parameter_entries,
+            remappings=remappings,
+            namespace=component_namespace,
             output=node_cfg.get("output", "screen"),
         )
     ]
