@@ -20,6 +20,7 @@ _COMPONENT_DEFAULTS: Dict[str, bool] = {
     "nav2_amcl": False,
     "nav2_map_server": False,
     "nav2_lifecycle_manager": False,
+    "laser_scan_merger": False,
     "uwb_triangulaion": False,
 }
 
@@ -184,6 +185,9 @@ def _launch_components(context, *_: Any) -> List[Node]:
 
     if _component_enabled(config, "nav2_lifecycle_manager"):
         nodes.extend(_create_nav2_lifecycle_manager_nodes(config, global_namespace))
+
+    if _component_enabled(config, "laser_scan_merger"):
+        nodes.extend(_create_laser_scan_merger_nodes(config, global_namespace))
 
     if _component_enabled(config, "uwb_triangulaion"):
         nodes.extend(_create_uwb_triangulaion_nodes(config, global_namespace))
@@ -430,6 +434,39 @@ def _create_nav2_lifecycle_manager_nodes(config: Dict[str, Any], global_namespac
             parameters=parameter_entries,
             remappings=remappings,
             namespace=component_namespace,
+            output=node_cfg.get("output", "screen"),
+        )
+    ]
+
+
+def _create_laser_scan_merger_nodes(config: Dict[str, Any], global_namespace: str) -> List[Node]:
+    node_cfg = _component_config(config, "laser_scan_merger")
+    params_file = node_cfg.get("params_file", _discover_default_config("laser_scan_merger.yaml"))
+    inline_parameters = node_cfg.get("ros__parameters", {})
+    remappings = node_cfg.get("remappings", [])
+    if isinstance(remappings, dict):
+        remappings = list(remappings.items())
+
+    node_name = node_cfg.get("name", "laser_scan_merger_node")
+    parameter_entries: List[Any] = []
+    if params_file:
+        loaded_parameters = _load_parameters_from_file(params_file, node_name)
+        if loaded_parameters:
+            parameter_entries.append(loaded_parameters)
+    if inline_parameters:
+        parameter_entries.append(inline_parameters)
+
+    node_namespace = _resolve_namespace(global_namespace, node_cfg.get("namespace"))
+    parameter_entries = _namespace_frame_ids(parameter_entries, global_namespace)
+
+    return [
+        Node(
+            package=node_cfg.get("package", "laser_scan_merger"),
+            executable=node_cfg.get("executable", "laser_scan_merger_node"),
+            name=node_name,
+            parameters=parameter_entries,
+            remappings=remappings,
+            namespace=node_namespace,
             output=node_cfg.get("output", "screen"),
         )
     ]

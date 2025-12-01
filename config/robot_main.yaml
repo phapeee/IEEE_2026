@@ -41,12 +41,16 @@ components:
     params_file: "/ws/config/nav2_amcl.yaml"
 
   nav2_map_server:
-    enabled: true
+    enabled: false
     params_file: "/ws/config/nav2_map_server.yaml"
 
   nav2_lifecycle_manager:
-    enabled: true
+    enabled: false
     params_file: "/ws/config/lifecycle_localization.yaml"
+
+  laser_scan_merger:
+    enabled: false
+    params_file: "/ws/config/laser_scan_merger.yaml"
 
   pointcloud_concatenate:
     enabled: false
@@ -55,13 +59,13 @@ components:
 
   pointcloud_to_laserscan_left:
     enabled: true
-    params_file: "/ws/config/pointcloud_to_laserscan.yaml"
+    params_file: "/ws/config/pointcloud_to_laserscan_left.yaml"
     cloud_topic: "left_depth_pcl"
     scan_topic: "left_laser_scan"
 
   pointcloud_to_laserscan_right:
-    enabled: true
-    params_file: "/ws/config/pointcloud_to_laserscan.yaml"
+    enabled: false
+    params_file: "/ws/config/pointcloud_to_laserscan_right.yaml"
     cloud_topic: "right_depth_pcl"
     scan_topic: "right_laser_scan"
 
