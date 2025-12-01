@@ -37,7 +37,7 @@ components:
     params_file: "/ws/config/robot_localization.yaml"
 
   pointcloud_concatenate:
-    enabled: false
+    enabled: true
     name: pointcloud_concatenate
     params_file: "/ws/config/pointcloud_concatenate.yaml"
 
@@ -54,6 +54,6 @@ components:
     scan_topic: "right_laser_scan"
 
   pointcloud_filter:
-    enabled: false
+    enabled: true
     params_file: "/ws/config/pointcloud_filter.yaml"
 # I have /bot_0/imu_data (sensor_msgs/msg/Imu), /bot_0/uwb_data (uwb_msgs/msg/IntFloatArrayStamped), 

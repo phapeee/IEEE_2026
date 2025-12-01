@@ -1,0 +1,40 @@
+amcl:
+  ros__parameters:
+    tf_broadcast: false
+    use_sim_time: false
+
+    # Frames
+    base_frame_id: bot_0/base_link
+    odom_frame_id: bot_0/odom
+    global_frame_id: map
+
+    # Laser topic (or remap via CLI)
+    scan_topic: /bot_0/scan
+
+    # Map topic (from nav2_map_server)
+    # Usually /map by default, no need to change.
+
+    # Particle filter params (reasonable starting point)
+    min_particles: 500
+    max_particles: 2000
+
+    # Sensor model
+    laser_min_range: 0.1
+    laser_max_range: 8.0
+    laser_max_beams: 60
+
+    # Motion model noise (tune later)
+    alpha1: 0.2
+    alpha2: 0.2
+    alpha3: 0.2
+    alpha4: 0.2
+
+    # How often to update
+    update_min_d: 0.1
+    update_min_a: 0.2
+    resample_interval: 1
+
+    # Initial pose (optional – can also be set via /initialpose)
+    # initial_pose_x: 0.0
+    # initial_pose_y: 0.0
+    # initial_pose_a: 0.0

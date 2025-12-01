@@ -18,4 +18,4 @@ pointcloud_filter:
     noise_radius: 0.1
     noise_min_neighbors: 2
     sync_timeout: 0.25
-    process_rate: 10.0
+    process_rate: 20.0
