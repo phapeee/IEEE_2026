@@ -1,0 +1,60 @@
+/rocker/controller_manager:
+  ros__parameters:
+    update_rate: 50
+
+    rocker_bogie_controller:
+      type: "rocker_bogie_controller/RockerBogieController"
+    joint_state_broadcaster:
+      type: "joint_state_broadcaster/JointStateBroadcaster"
+
+/rocker/rocker_bogie_controller:
+  ros__parameters:
+    wheel_joints:
+      - Left_Front_Wheel
+      - Left_Mid_Wheel
+      - Left_Rear_Wheel
+      - Right_Front_Wheel
+      - Right_Mid_Wheel
+      - Right_Rear_Wheel
+    servo_joints:
+      - Left_Front_Servo
+      - Left_Mid_Servo
+      - Left_Rear_Servo
+      - Right_Front_Servo
+      - Right_Mid_Servo
+      - Right_Rear_Servo
+    servo_directions:
+      - "Left_Front_Servo:-1.0"
+      - "Left_Mid_Servo:-1.0"
+      - "Left_Rear_Servo:-1.0"
+      - "Right_Front_Servo:1.0"
+      - "Right_Mid_Servo:1.0"
+      - "Right_Rear_Servo:1.0"
+    state_joints:
+      - Left_Front_Servo
+      - Left_Mid_Servo
+      - Left_Rear_Servo
+      - Right_Front_Servo
+      - Right_Mid_Servo
+      - Right_Rear_Servo
+      - Left_Front_Wheel
+      - Left_Mid_Wheel
+      - Left_Rear_Wheel
+      - Right_Front_Wheel
+      - Right_Mid_Wheel
+      - Right_Rear_Wheel
+    cmd_vel_topic: "cmd_vel_stamped"
+    publish_joint_states: true
+    publish_rate: 50.0
+    cmd_vel_timeout: 0.5
+    left_wheel_direction: 1.0
+    right_wheel_direction: -1.0
+    min_steering_angle_deg: 3.0
+    max_steering_angle_deg: 10.0
+    servo_max_angle_deg: 90.0
+    wheel_distance_x: 0.25
+    wheel_distance_y: 0.2
+    yaw_deadband: 0.01
+
+/rocker/joint_state_broadcaster:
+  ros__parameters: {}

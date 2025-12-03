@@ -27,6 +27,7 @@ components:
     enabled: true
     parameters:
       publish_robot_description: true
+      robot_description: "$(xacro /ws/config/rocker.urdf)"
 
   uwb_triangulaion:
     enabled: false
@@ -40,9 +41,14 @@ components:
     enabled: false
     params_file: "/ws/config/nav2_amcl.yaml"
 
-  nav2_map_server:
+  initial_pose_publisher:
     enabled: false
-    params_file: "/ws/config/nav2_map_server.yaml"
+    x: 0.1524
+    y: 0.1524
+    yaw: 1.5707963268
+    frame_id: map
+    topic: initialpose
+    delay_sec: 0.0
 
   nav2_lifecycle_manager:
     enabled: false
@@ -52,13 +58,17 @@ components:
     enabled: false
     params_file: "/ws/config/laser_scan_merger.yaml"
 
+  imu_calibration:
+    enabled: false
+    params_file: "/ws/config/imu_calibration.yaml"
+
   pointcloud_concatenate:
     enabled: false
     name: pointcloud_concatenate
     params_file: "/ws/config/pointcloud_concatenate.yaml"
 
   pointcloud_to_laserscan_left:
-    enabled: true
+    enabled: false
     params_file: "/ws/config/pointcloud_to_laserscan_left.yaml"
     cloud_topic: "left_depth_pcl"
     scan_topic: "left_laser_scan"

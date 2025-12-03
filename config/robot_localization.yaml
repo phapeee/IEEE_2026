@@ -8,18 +8,18 @@ ekf_filter_node:
     map_frame: map
     odom_frame: bot_0/odom
     base_link_frame: bot_0/base_link
-    world_frame: bot_0/odom
+    world_frame: map
 
-    initial_state: [
-      0.0, 0.0, 0.0,     # start x,y near your UWB
-      0.0, 0.0, 0.0,     # roll,pitch,yaw
-      0.0, 0.0, 0.0,     # velocities
-      0.0, 0.0, 0.0,     # angular velocities
-      0.0, 0.0, 0.0      # accelerations
-    ]
+    # initial_state: [
+    #   0.0, 0.0, 0.0,     # start x,y near your UWB
+    #   0.0, 0.0, 0.0,     # roll,pitch,yaw
+    #   0.0, 0.0, 0.0,     # velocities
+    #   0.0, 0.0, 0.0,     # angular velocities
+    #   0.0, 0.0, 0.0      # accelerations
+    # ]
 
     # -------- IMU (yaw + yaw rate only) --------
-    imu0: /bot_0/imu_data
+    imu0: /bot_0/imu
     imu0_config: [
       false, false, false,   # x, y, z
       false, false, true,    # roll, pitch, yaw

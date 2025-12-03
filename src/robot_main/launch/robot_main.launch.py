@@ -1,12 +1,13 @@
 """Launch description for the robot_main global launcher."""
 
+import math
 from pathlib import Path
 from typing import Any, Dict, List
 
 import yaml
 
 from launch import LaunchDescription
-from launch.actions import DeclareLaunchArgument, OpaqueFunction
+from launch.actions import DeclareLaunchArgument, OpaqueFunction, TimerAction, ExecuteProcess
 from launch.substitutions import LaunchConfiguration, Command, FindExecutable
 from launch_ros.actions import Node
 from launch_ros.parameter_descriptions import ParameterValue
@@ -21,7 +22,9 @@ _COMPONENT_DEFAULTS: Dict[str, bool] = {
     "nav2_map_server": False,
     "nav2_lifecycle_manager": False,
     "laser_scan_merger": False,
+    "imu_calibration": False,
     "uwb_triangulaion": False,
+    "initial_pose_publisher": False,
 }
 
 
@@ -64,9 +67,11 @@ def _launch_components(context, *_: Any) -> List[Node]:
     robot_description_file = context.perform_substitution(LaunchConfiguration("robot_description_file"))
 
     config = _load_robot_main_config(config_path)
+    robot_description_override_path = config.get("robot_description_file")
+    robot_description_source = str(robot_description_override_path or robot_description_file)
     global_namespace = _normalize_namespace(config.get("namespace", ""))
     robot_namespace_arg = global_namespace.strip("/") if global_namespace else ""
-    xacro_command = [FindExecutable(name="xacro"), " ", robot_description_file]
+    xacro_command = [FindExecutable(name="xacro"), " ", robot_description_source]
     if robot_namespace_arg:
         xacro_command.extend([" ", f"robot_namespace:={robot_namespace_arg}"])
 
@@ -123,6 +128,21 @@ def _launch_components(context, *_: Any) -> List[Node]:
                 arguments=[controller_name, "--controller-manager", controller_manager_ns, *extra_args],
                 namespace=mecanum_namespace,
                 output=mecanum_cfg.get("output", "screen"),
+            )
+        )
+    if _component_enabled(config, "rocker_bogie_controller_spawner"):
+        rocker_cfg = _component_config(config, "rocker_bogie_controller_spawner")
+        controller_name = rocker_cfg.get("controller_name", "rocker_bogie_controller")
+        controller_manager_ns = rocker_cfg.get("controller_manager", "/controller_manager")
+        extra_args = rocker_cfg.get("extra_arguments", [])
+        rocker_namespace = _resolve_namespace(global_namespace, rocker_cfg.get("namespace"))
+        nodes.append(
+            Node(
+                package="controller_manager",
+                executable="spawner",
+                arguments=[controller_name, "--controller-manager", controller_manager_ns, *extra_args],
+                namespace=rocker_namespace,
+                output=rocker_cfg.get("output", "screen"),
             )
         )
 
@@ -188,6 +208,12 @@ def _launch_components(context, *_: Any) -> List[Node]:
 
     if _component_enabled(config, "laser_scan_merger"):
         nodes.extend(_create_laser_scan_merger_nodes(config, global_namespace))
+
+    if _component_enabled(config, "imu_calibration"):
+        nodes.extend(_create_imu_calibration_nodes(config, global_namespace))
+
+    if _component_enabled(config, "initial_pose_publisher"):
+        nodes.extend(_create_initial_pose_publisher_nodes(config, global_namespace))
 
     if _component_enabled(config, "uwb_triangulaion"):
         nodes.extend(_create_uwb_triangulaion_nodes(config, global_namespace))
@@ -424,7 +450,8 @@ def _create_nav2_lifecycle_manager_nodes(config: Dict[str, Any], global_namespac
     if inline_parameters:
         parameter_entries.append(inline_parameters)
 
-    component_namespace = _normalize_namespace(node_cfg.get("namespace"))
+    component_namespace = _resolve_namespace(global_namespace, node_cfg.get("namespace"))
+    parameter_entries = _namespace_lifecycle_node_names(parameter_entries, global_namespace)
 
     return [
         Node(
@@ -435,6 +462,56 @@ def _create_nav2_lifecycle_manager_nodes(config: Dict[str, Any], global_namespac
             remappings=remappings,
             namespace=component_namespace,
             output=node_cfg.get("output", "screen"),
+        )
+    ]
+
+
+def _create_initial_pose_publisher_nodes(config: Dict[str, Any], global_namespace: str) -> List[Any]:
+    """Publish a single initial pose message on the (namespaced) initialpose topic."""
+    node_cfg = _component_config(config, "initial_pose_publisher")
+    x = float(node_cfg.get("x", 0.0))
+    y = float(node_cfg.get("y", 0.0))
+    yaw = float(node_cfg.get("yaw", 0.0))
+    frame_id = str(node_cfg.get("frame_id", "map"))
+    topic = _namespaced_topic(global_namespace, node_cfg.get("topic", "initialpose"))
+    delay_sec = float(node_cfg.get("delay_sec", 1.0))
+
+    half_yaw = yaw * 0.5
+    qz = math.sin(half_yaw)
+    qw = math.cos(half_yaw)
+    covariance = [0.0, 0.0, 0.0, 0.0, 0.0, 0.0,
+                  0.0, 0.0, 0.0, 0.0, 0.0, 0.0,
+                  0.0, 0.0, 0.0, 0.0, 0.0, 0.0,
+                  0.0, 0.0, 0.0, 0.0, 0.0, 0.0,
+                  0.0, 0.0, 0.0, 0.0, 0.0, 0.0,
+                  0.0, 0.0, 0.0, 0.0, 0.0, 0.0]
+    covariance_str = ", ".join(str(v) for v in covariance)
+    pose_msg = (
+        f"{{header: {{frame_id: '{frame_id}'}}, "
+        f"pose: {{pose: {{position: {{x: {x}, y: {y}, z: 0.0}}, "
+        f"orientation: {{z: {qz}, w: {qw}}}}}, "
+        f"covariance: [{covariance_str}]}}}}"
+    )
+
+    publisher_cmd = [
+        "ros2",
+        "topic",
+        "pub",
+        "-1",
+        topic,
+        "geometry_msgs/PoseWithCovarianceStamped",
+        pose_msg,
+    ]
+
+    return [
+        TimerAction(
+            period=delay_sec,
+            actions=[
+                ExecuteProcess(
+                    cmd=publisher_cmd,
+                    output=node_cfg.get("output", "screen"),
+                )
+            ],
         )
     ]
 
@@ -498,6 +575,39 @@ def _create_uwb_triangulaion_nodes(config: Dict[str, Any], global_namespace: str
             package=node_cfg.get("package", "uwb_triangulaion"),
             executable=node_cfg.get("executable", "uwb_triangulaion_node"),
             name=node_cfg.get("name", "uwb_triangulaion_node"),
+            parameters=parameter_entries,
+            remappings=remappings,
+            namespace=node_namespace,
+            output=node_cfg.get("output", "screen"),
+        )
+    ]
+
+
+def _create_imu_calibration_nodes(config: Dict[str, Any], global_namespace: str) -> List[Node]:
+    node_cfg = _component_config(config, "imu_calibration")
+    params_file = node_cfg.get("params_file", _discover_default_config("imu_calibration.yaml"))
+    inline_parameters = node_cfg.get("ros__parameters", {})
+    remappings = node_cfg.get("remappings", [])
+    if isinstance(remappings, dict):
+        remappings = list(remappings.items())
+
+    node_name = node_cfg.get("name", "imu_calibration_node")
+    parameter_entries: List[Any] = []
+    if params_file:
+        loaded_parameters = _load_parameters_from_file(params_file, node_name)
+        if loaded_parameters:
+            parameter_entries.append(loaded_parameters)
+    if inline_parameters:
+        parameter_entries.append(inline_parameters)
+
+    node_namespace = _resolve_namespace(global_namespace, node_cfg.get("namespace"))
+    parameter_entries = _namespace_frame_ids(parameter_entries, global_namespace)
+
+    return [
+        Node(
+            package=node_cfg.get("package", "imu_calibration"),
+            executable=node_cfg.get("executable", "imu_calibration_node"),
+            name=node_name,
             parameters=parameter_entries,
             remappings=remappings,
             namespace=node_namespace,
@@ -622,6 +732,25 @@ def _namespace_frame_ids(parameters: List[Any], global_namespace: str) -> List[A
     return [_apply_frame_id_namespace(entry, global_namespace) for entry in parameters]
 
 
+def _namespace_lifecycle_node_names(parameters: List[Any], global_namespace: str) -> List[Any]:
+    if not global_namespace or not parameters:
+        return parameters
+    namespaced: List[Any] = []
+    for entry in parameters:
+        if isinstance(entry, dict):
+            node_names = entry.get("node_names")
+            if isinstance(node_names, list):
+                updated_entry = dict(entry)
+                updated_entry["node_names"] = [
+                    _force_namespaced_topic(global_namespace, name) if isinstance(name, str) else name
+                    for name in node_names
+                ]
+                namespaced.append(updated_entry)
+                continue
+        namespaced.append(entry)
+    return namespaced
+
+
 def _apply_frame_id_namespace(entry: Any, global_namespace: str) -> Any:
     if isinstance(entry, dict):
         updated: Dict[Any, Any] = {}
@@ -630,6 +759,8 @@ def _apply_frame_id_namespace(entry: Any, global_namespace: str) -> Any:
                 updated[key] = _namespaced_frame_id(global_namespace, value)
             elif key == "target_frame":
                 updated[key] = _namespaced_target_frame(global_namespace, value)
+            elif key == "global_frame_id":
+                updated[key] = value
             elif _is_frame_reference_key(key):
                 updated[key] = _namespaced_frame_id(global_namespace, value)
             elif _is_topic_key(key):
@@ -722,7 +853,7 @@ def _is_frame_reference_key(key: Any) -> bool:
     if not isinstance(key, str):
         return False
     lowered = key.lower()
-    return lowered.endswith("_frame")
+    return lowered.endswith("_frame") or lowered.endswith("_frame_id")
 
 
 def _namespaced_topic(global_namespace: str, topic_value: Any) -> Any:

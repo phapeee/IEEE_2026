@@ -1,0 +1,207 @@
+<?xml version='1.0' encoding='utf-8'?>
+<robot name="Rocker">
+    <link name="Righ-Rocker-v2"/>
+    <link name="Chassis-v2"/>
+    <link name="Left-Rocker-v2"/>
+    <link name="Right-Bogie-v2"/>
+    <link name="Left-Bogie-v3"/>
+    <link name="Turn-Motor-v2_0"/>
+    <link name="Turn-Motor-v2_1"/>
+    <link name="Turn-Motor-v2_2"/>
+    <link name="Turn-Motor-v2_3"/>
+    <link name="Turn-Motor-v2_4"/>
+    <link name="Turn-Motor-v2_5"/>
+    <link name="Wheel-v2_0"/>
+    <link name="Wheel-v2_1"/>
+    <link name="Wheel-v2_2"/>
+    <link name="Wheel-v2_3"/>
+    <link name="Wheel-v2_4"/>
+    <link name="Wheel-v2_5"/>
+    <link name="Camera-v6"/>
+    <joint name="Chassis-v2_Rigid-1" type="fixed">
+        <origin xyz="0.020280175196496372 0.02899987748248961 0.0933999999999999" rpy="0.0 -0.0 0.0" />
+        <parent link="Chassis-v2" />
+        <child link="Righ-Rocker-v2" />
+        <axis xyz="0.0 0.0 1.0" />
+    </joint>
+    <joint name="Chassis-v2_Rigid-2" type="fixed">
+        <origin xyz="0.020280175196496372 0.02899987748248961 -0.09340000000000032" rpy="0.0 -0.0 0.0" />
+        <parent link="Chassis-v2" />
+        <child link="Left-Rocker-v2" />
+        <axis xyz="0.0 0.0 1.0" />
+    </joint>
+    <joint name="Righ-Rocker-v2_Revolute-3" type="continuous">
+        <origin xyz="-0.08797953061449686 -0.051470300163695484 0.008500000000000014" rpy="0.0 -0.0 0.0" />
+        <parent link="Righ-Rocker-v2" />
+        <child link="Right-Bogie-v2" />
+        <axis xyz="0.0 0.0 1.0" />
+    </joint>
+    <joint name="Left-Rocker-v2_Revolute-4" type="continuous">
+        <origin xyz="-0.08797953061449686 -0.051470300163695484 -0.008500000000000014" rpy="0.0 -0.0 0.0" />
+        <parent link="Left-Rocker-v2" />
+        <child link="Left-Bogie-v3" />
+        <axis xyz="0.0 0.0 1.0" />
+    </joint>
+    <joint name="Right_Rear_Servo" type="continuous">
+        <origin xyz="0.08404614177734203 -0.09059455578922554 -0.03175003922804102" rpy="-3.141592653589793 -1.2411743212788007e-19 -3.135261899526165" />
+        <parent link="Left-Rocker-v2" />
+        <child link="Turn-Motor-v2_0" />
+        <axis xyz="2.879704206325967e-07 1.000000040980458 -1.960521252151095e-17" />
+    </joint>
+    <joint name="Right_Mid_Servo" type="continuous">
+        <origin xyz="0.057149999999999895 -0.03965101566092855 -0.02325000000000017" rpy="3.141592653589793 1.2246467991473532e-16 3.1415926535897927" />
+        <parent link="Left-Bogie-v3" />
+        <child link="Turn-Motor-v2_1" />
+        <axis xyz="5.516420653606247e-16 0.9999999999999999 -4.6152535233669817e-32" />
+    </joint>
+    <joint name="Right_Front_Servo" type="continuous">
+        <origin xyz="-0.05714999999987178 -0.03965101566171498 -0.023250000000038542" rpy="-3.141592653589793 1.2246467991473532e-16 -3.141592653589793" />
+        <parent link="Left-Bogie-v3" />
+        <child link="Turn-Motor-v2_2" />
+        <axis xyz="-8.673617379884035e-19 0.9999999999999999 2.465190328815662e-32" />
+    </joint>
+    <joint name="Left_Front_Servo" type="continuous">
+        <origin xyz="-0.05714999999987178 -0.03965101566171498 0.023250000000038754" rpy="6.1629219941440005e-33 -0.0 1.734723475976811e-18" />
+        <parent link="Right-Bogie-v2" />
+        <child link="Turn-Motor-v2_3" />
+        <axis xyz="-1.734723475976807e-18 -0.9999999999999979 -2.465190328815662e-32" />
+    </joint>
+    <joint name="Left_Mid_Servo" type="continuous">
+        <origin xyz="0.057149999999999895 -0.03965101566092855 0.0232500000000001" rpy="-3.071083503030567e-32 2.40741243048405e-35 -5.51195380811051e-16" />
+        <parent link="Right-Bogie-v2" />
+        <child link="Turn-Motor-v2_4" />
+        <axis xyz="5.511953808110498e-16 -0.9999999999999979 -5.840988403237245e-32" />
+    </joint>
+    <joint name="Left_Rear_Servo" type="continuous">
+        <origin xyz="0.08404614177734203 -0.09059455578922554 0.03175003922804109" rpy="1.9605211753822517e-17 1.2234056248260764e-16 0.006330754063628397" />
+        <parent link="Righ-Rocker-v2" />
+        <child link="Turn-Motor-v2_5" />
+        <axis xyz="2.879704206299946e-07 -1.0000000409804557 1.9605247787716275e-17" />
+    </joint>
+    <joint name="Right_Front_Wheel" type="continuous">
+        <origin xyz="7.105427357601002e-17 -0.0591455577192116 0.013281677944773449" rpy="-1.5707963267966545 -1.5627721248507642 1.5707963267966545" />
+        <parent link="Turn-Motor-v2_2" />
+        <child link="Wheel-v2_0" />
+        <axis xyz="1.0000001927999744 -1.1738509715121526e-07 -1.422792352600749e-14" />
+    </joint>
+    <joint name="Right_Mid_Wheel" type="continuous">
+        <origin xyz="1.4210854715202004e-16 -0.059145557719211594 0.013281677944773449" rpy="-1.5707963267966545 -1.5627721248507642 1.5707963267966545" />
+        <parent link="Turn-Motor-v2_1" />
+        <child link="Wheel-v2_1" />
+        <axis xyz="1.0000001927999744 -1.1738509715121526e-07 -1.423233634985567e-14" />
+    </joint>
+    <joint name="Right_Rear_Wheel" type="continuous">
+        <origin xyz="1.4210854715202004e-16 -0.0591455577192116 0.01328167794477352" rpy="1.5707963267931389 -1.5627721248507642 1.5707963267966545" />
+        <parent link="Turn-Motor-v2_0" />
+        <child link="Wheel-v2_2" />
+        <axis xyz="1.00000019410046 -4.468179334513045e-08 2.0134672718115576e-07" />
+    </joint>
+    <joint name="Left_Front_Wheel" type="continuous">
+        <origin xyz="2.1316282072803005e-16 -0.05914555771921158 0.01328167794477352" rpy="1.5707963267931389 -1.5627721248507642 1.5707963267966545" />
+        <parent link="Turn-Motor-v2_3" />
+        <child link="Wheel-v2_3" />
+        <axis xyz="1.0000001927999744 1.1738509713560275e-07 1.4105393444670251e-14" />
+    </joint>
+    <joint name="Left_Mid_Wheel" type="continuous">
+        <origin xyz="1.4210854715202004e-16 -0.05914555771921155 0.01328167794477352" rpy="1.5707963267931389 -1.5627721248507642 1.5707963267966545" />
+        <parent link="Turn-Motor-v2_4" />
+        <child link="Wheel-v2_4" />
+        <axis xyz="1.0000001927999744 1.1738509713560275e-07 1.4100994745537654e-14" />
+    </joint>
+    <joint name="Left_Rear_Wheel" type="continuous">
+        <origin xyz="1.4210854715202004e-16 -0.05914555771921164 0.01328167794477352" rpy="1.5707963267931389 -1.5627721248507642 1.5707963267966545" />
+        <parent link="Turn-Motor-v2_5" />
+        <child link="Wheel-v2_5" />
+        <axis xyz="1.00000019410046 -4.4681793357273514e-08 -2.0134669909277e-07" />
+    </joint>
+    <joint name="Chassis-v2_Rigid-17" type="fixed">
+        <origin xyz="-0.1693998248000423 0.029001023390823395 -5.684341886080802e-16" rpy="6.041271265845756e-06 1.5707963267948966 0" />
+        <parent link="Chassis-v2" />
+        <child link="Camera-v6" />
+    </joint>
+    <ros2_control name="rocker_bogie_system" type="system">
+        <hardware>
+            <plugin>rocker_bogie_hardware/RockerBogieHardware</plugin>
+            <param name="state_topic">/rocker/joint_states_wheel</param>
+            <param name="command_topic">/rocker/joint_command_wheel</param>
+            <param name="state_qos_depth">50</param>
+            <param name="command_qos_depth">10</param>
+            <param name="state_timeout">0.5</param>
+            <param name="command_publish_period">0.02</param>
+            <param name="parameter_namespace">rocker_bogie_hardware</param>
+            <param name="controller_manager_name">controller_manager</param>
+        </hardware>
+        <joint name="Left_Rear_Servo">
+            <command_interface name="position" />
+            <state_interface name="position" />
+            <state_interface name="velocity" />
+            <param name="hardware_joint_name">Left_Rear_Servo</param>
+        </joint>
+        <joint name="Right_Rear_Servo">
+            <command_interface name="position" />
+            <state_interface name="position" />
+            <state_interface name="velocity" />
+            <param name="hardware_joint_name">Right_Rear_Servo</param>
+        </joint>
+        <joint name="Left_Rear_Wheel">
+            <command_interface name="velocity" />
+            <state_interface name="position" />
+            <state_interface name="velocity" />
+            <param name="hardware_joint_name">Left_Rear_Wheel</param>
+        </joint>
+        <joint name="Left_Front_Servo">
+            <command_interface name="position" />
+            <state_interface name="position" />
+            <state_interface name="velocity" />
+            <param name="hardware_joint_name">Left_Front_Servo</param>
+        </joint>
+        <joint name="Left_Mid_Servo">
+            <command_interface name="position" />
+            <state_interface name="position" />
+            <state_interface name="velocity" />
+            <param name="hardware_joint_name">Left_Mid_Servo</param>
+        </joint>
+        <joint name="Right_Mid_Servo">
+            <command_interface name="position" />
+            <state_interface name="position" />
+            <state_interface name="velocity" />
+            <param name="hardware_joint_name">Right_Mid_Servo</param>
+        </joint>
+        <joint name="Right_Front_Servo">
+            <command_interface name="position" />
+            <state_interface name="position" />
+            <state_interface name="velocity" />
+            <param name="hardware_joint_name">Right_Front_Servo</param>
+        </joint>
+        <joint name="Right_Rear_Wheel">
+            <command_interface name="velocity" />
+            <state_interface name="position" />
+            <state_interface name="velocity" />
+            <param name="hardware_joint_name">Right_Rear_Wheel</param>
+        </joint>
+        <joint name="Left_Front_Wheel">
+            <command_interface name="velocity" />
+            <state_interface name="position" />
+            <state_interface name="velocity" />
+            <param name="hardware_joint_name">Left_Front_Wheel</param>
+        </joint>
+        <joint name="Left_Mid_Wheel">
+            <command_interface name="velocity" />
+            <state_interface name="position" />
+            <state_interface name="velocity" />
+            <param name="hardware_joint_name">Left_Mid_Wheel</param>
+        </joint>
+        <joint name="Right_Mid_Wheel">
+            <command_interface name="velocity" />
+            <state_interface name="position" />
+            <state_interface name="velocity" />
+            <param name="hardware_joint_name">Right_Mid_Wheel</param>
+        </joint>
+        <joint name="Right_Front_Wheel">
+            <command_interface name="velocity" />
+            <state_interface name="position" />
+            <state_interface name="velocity" />
+            <param name="hardware_joint_name">Right_Front_Wheel</param>
+        </joint>
+    </ros2_control>
+</robot>

@@ -49,6 +49,29 @@ components:
 
 Set `enabled` to `false` to keep a component out of the launch description. Optional fields let you override names, controller-manager namespaces, parameter overrides, or remappings on a per-component basis. The optional top-level `namespace` entry defines the global namespace applied to every launched node; relative topic names are resolved inside this namespace so you can avoid repeating prefixes like `/bot_0` throughout the component definitions.
 
+### IMU calibration helper
+
+The workspace also ships an `imu_calibration` package that flattens IMU orientation during startup. Add the component to `config/robot_main.yaml` and point it at your desired topics (see `config/imu_calibration.yaml` for a template). When enabled, the node subscribes to the configured IMU topic, averages the first `calibration_samples` readings (or stops after `calibration_timeout_sec`), and then publishes calibrated orientations on `output_topic`.
+
+To run it manually:
+
+```bash
+ros2 run imu_calibration imu_calibration_node \
+  --ros-args -p input_topic:=/bot_0/imu_data -p output_topic:=/bot_0/imu/data_calibrated
+```
+
+Use the calibrated topic wherever you previously consumed the raw IMU message (e.g., in `robot_localization`).
+
+### HQ map-only bringup
+
+When you only need the Nav2 map server and its lifecycle manager (e.g., for headquarters/offboard map distribution), use the dedicated HQ launch file:
+
+```bash
+ros2 launch robot_main robot_main_hq.launch.py
+```
+
+It defaults to `config_HQ/robot_main.yaml`, which currently enables just `nav2_map_server` and `nav2_lifecycle_manager` without any global namespace. Override `robot_main_config` if you keep alternative HQ configs in another location.
+
 ## Sending velocity commands
 
 Launch a keyboard teleop node (for example `teleop_twist_keyboard`) in another terminal to publish `geometry_msgs/Twist` messages to `/cmd_vel`. The `cmd_vel_relay` section in `config/robot_main.yaml` sets the relay node name, enable flag, and the `ros__parameters` block that defines the input/output topics (default `/cmd_vel` → `/mecanum_controller/reference`) plus the `frame_id` stamped on the outgoing `geometry_msgs/TwistStamped` messages:
