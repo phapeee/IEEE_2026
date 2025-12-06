@@ -1,7 +1,7 @@
 <?xml version='1.0' encoding='utf-8'?>
 <robot name="Rocker">
     <link name="Righ-Rocker-v2"/>
-    <link name="Chassis-v2"/>
+    <link name="base_link"/>
     <link name="Left-Rocker-v2"/>
     <link name="Right-Bogie-v2"/>
     <link name="Left-Bogie-v3"/>
@@ -18,15 +18,16 @@
     <link name="Wheel-v2_4"/>
     <link name="Wheel-v2_5"/>
     <link name="Camera-v6"/>
-    <joint name="Chassis-v2_Rigid-1" type="fixed">
+    <link name="imu_link"/>
+    <joint name="base_link_Rigid-1" type="fixed">
         <origin xyz="0.020280175196496372 0.02899987748248961 0.0933999999999999" rpy="0.0 -0.0 0.0" />
-        <parent link="Chassis-v2" />
+        <parent link="base_link" />
         <child link="Righ-Rocker-v2" />
         <axis xyz="0.0 0.0 1.0" />
     </joint>
-    <joint name="Chassis-v2_Rigid-2" type="fixed">
+    <joint name="base_link_Rigid-2" type="fixed">
         <origin xyz="0.020280175196496372 0.02899987748248961 -0.09340000000000032" rpy="0.0 -0.0 0.0" />
-        <parent link="Chassis-v2" />
+        <parent link="base_link" />
         <child link="Left-Rocker-v2" />
         <axis xyz="0.0 0.0 1.0" />
     </joint>
@@ -114,16 +115,21 @@
         <child link="Wheel-v2_5" />
         <axis xyz="1.00000019410046 -4.4681793357273514e-08 -2.0134669909277e-07" />
     </joint>
-    <joint name="Chassis-v2_Rigid-17" type="fixed">
+    <joint name="base_link_Rigid-17" type="fixed">
         <origin xyz="-0.1693998248000423 0.029001023390823395 -5.684341886080802e-16" rpy="6.041271265845756e-06 1.5707963267948966 0" />
-        <parent link="Chassis-v2" />
+        <parent link="base_link" />
         <child link="Camera-v6" />
+    </joint>
+    <joint name="base_link_IMU" type="fixed">
+        <origin xyz="0.0 0.0 0.0" rpy="0.0 0.0 0.0" />
+        <parent link="base_link" />
+        <child link="imu_link" />
     </joint>
     <ros2_control name="rocker_bogie_system" type="system">
         <hardware>
             <plugin>rocker_bogie_hardware/RockerBogieHardware</plugin>
-            <param name="state_topic">/rocker/joint_states_wheel</param>
-            <param name="command_topic">/rocker/joint_command_wheel</param>
+            <param name="state_topic">joint_states_wheel</param>
+            <param name="command_topic">joint_command_wheel</param>
             <param name="state_qos_depth">50</param>
             <param name="command_qos_depth">10</param>
             <param name="state_timeout">0.5</param>

@@ -66,9 +66,11 @@ private:
   size_t command_qos_depth_{10};
   double state_timeout_{0.5};
   double command_publish_period_{0.02};
+  double command_publish_epsilon_{1e-4};
 
   rclcpp::Time last_state_time_{0, 0, RCL_SYSTEM_TIME};
   rclcpp::Time last_command_publish_time_{0, 0, RCL_SYSTEM_TIME};
+  std::vector<double> last_command_snapshot_;
 };
 }  // namespace rocker_bogie_hardware
 

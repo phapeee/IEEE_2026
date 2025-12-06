@@ -113,10 +113,29 @@ controller_interface::CallbackReturn RockerBogieController::on_configure(
   auto node = get_node();
   cmd_vel_topic_ = auto_declare<std::string>("cmd_vel_topic", "/cmd_vel");
   publish_joint_states_ = auto_declare<bool>("publish_joint_states", true);
+  publish_twist_ = auto_declare<bool>("publish_twist", false);
   publish_rate_ = auto_declare<double>("publish_rate", 50.0);
   cmd_vel_timeout_ = auto_declare<double>("cmd_vel_timeout", 0.5);
   left_forward_direction_ = auto_declare<double>("left_wheel_direction", 1.0);
   right_forward_direction_ = auto_declare<double>("right_wheel_direction", -1.0);
+  wheel_radius_ = auto_declare<double>("wheel_radius", 0.05);
+  if (wheel_radius_ <= 0.0)
+  {
+    RCLCPP_WARN(
+      node->get_logger(), "Parameter 'wheel_radius' must be positive. Clamping to 0.01 m.");
+    wheel_radius_ = 0.01;
+  }
+  wheel_radius_inv_ = 1.0 / wheel_radius_;
+  twist_frame_id_ = auto_declare<std::string>("twist_frame_id", "odom");
+  auto twist_cov_diag = auto_declare<std::vector<double>>(
+    "twist_covariance_diagonal", std::vector<double>{});
+  twist_covariance_.fill(0.0);
+  for (size_t i = 0; i < twist_cov_diag.size() && i < 6; ++i)
+  {
+    twist_covariance_[i * 6 + i] = twist_cov_diag[i];
+  }
+  twist_linear_deadband_ = auto_declare<double>("twist_linear_deadband", 1e-3);
+  twist_linear_deadband_ = std::max(0.0, twist_linear_deadband_);
 
   publish_period_ = publish_rate_ > 0.0 ?
     rclcpp::Duration::from_seconds(1.0 / publish_rate_) : rclcpp::Duration(0, 0);
@@ -137,6 +156,16 @@ controller_interface::CallbackReturn RockerBogieController::on_configure(
   else
   {
     joint_state_publisher_.reset();
+  }
+
+  if (publish_twist_)
+  {
+    twist_publisher_ = node->create_publisher<geometry_msgs::msg::TwistWithCovarianceStamped>(
+      "~/twist", rclcpp::QoS(10));
+  }
+  else
+  {
+    twist_publisher_.reset();
   }
 
   return controller_interface::CallbackReturn::SUCCESS;
@@ -228,6 +257,7 @@ controller_interface::CallbackReturn RockerBogieController::on_deactivate(
 controller_interface::return_type RockerBogieController::update(
   const rclcpp::Time & time, const rclcpp::Duration &)
 {
+  const double inv_wheel_radius = wheel_radius_inv_;
   double desired_linear_x = 0.0;
   double desired_linear_y = 0.0;
   double desired_yaw = 0.0;
@@ -241,8 +271,9 @@ controller_interface::return_type RockerBogieController::update(
     }
   }
 
-  const double yaw_magnitude = std::abs(desired_yaw);
-  if (yaw_magnitude > yaw_deadband_)
+  // Angular mode runs whenever a non-zero yaw command is requested.
+  const bool angular_mode = std::abs(desired_yaw) > yaw_deadband_;
+  if (angular_mode)
   {
     const double diag_distance = std::hypot(wheel_distance_x_, wheel_distance_y_);
     const double offset_angle = std::atan2(wheel_distance_y_, wheel_distance_x_);
@@ -305,15 +336,60 @@ controller_interface::return_type RockerBogieController::update(
       double command = 0.0;
       if (wheel_it != wheel_targets.end())
       {
-        command = wheel.direction * wheel_it->second;
+        command = wheel.direction * wheel_it->second * inv_wheel_radius;
       }
       wheel.command->set_value(command);
     }
 
     publish_joint_states(time);
+    if (steering_ready_)
+    {
+      double yaw_sum = 0.0;
+      size_t yaw_measurements = 0;
+      for (const auto & wheel : wheel_handles_)
+      {
+        if (!wheel.velocity_state)
+        {
+          continue;
+        }
+        double lever = 0.0;
+        double sign = 0.0;
+        if (
+          wheel.name == "Left_Front_Wheel" || wheel.name == "Left_Rear_Wheel" ||
+          wheel.name == "Right_Front_Wheel" || wheel.name == "Right_Rear_Wheel")
+        {
+          lever = diag_distance;
+          sign = (wheel.name.find("Left") != std::string::npos) ? -1.0 : 1.0;
+        }
+        else if (wheel.name == "Left_Mid_Wheel" || wheel.name == "Right_Mid_Wheel")
+        {
+          lever = wheel_distance_y_;
+          sign = (wheel.name.find("Left") != std::string::npos) ? -1.0 : 1.0;
+        }
+        else
+        {
+          continue;
+        }
+        if (lever <= 1e-6)
+        {
+          continue;
+        }
+        const double measured_linear =
+          wheel.direction * wheel.velocity_state->get_value() * wheel_radius_;
+        const double yaw_estimate = measured_linear / (sign * lever);
+        yaw_sum += yaw_estimate;
+        yaw_measurements++;
+      }
+      if (yaw_measurements > 0)
+      {
+        const double avg_yaw = yaw_sum / static_cast<double>(yaw_measurements);
+        publish_twist(time, 0.0, 0.0, avg_yaw);
+      }
+    }
     return controller_interface::return_type::OK;
   }
 
+  // Linear mode keeps all wheels aligned and spins them in the same direction.
   const double magnitude = std::hypot(desired_linear_x, desired_linear_y);
   double desired_speed = magnitude;
   double desired_angle = 0.0;
@@ -334,6 +410,7 @@ controller_interface::return_type RockerBogieController::update(
   }
 
   double avg_servo_angle = 0.0;
+  size_t servo_measurements = 0;
   if (!servo_handles_.empty())
   {
     double sum_angles = 0.0;
@@ -345,8 +422,31 @@ controller_interface::return_type RockerBogieController::update(
       const double direction = std::abs(servo.direction) < 1e-6 ? 1.0 : servo.direction;
       servo.command->set_value(servo_command_angle / direction);
       sum_angles += current_angle;
+      servo_measurements++;
     }
-    avg_servo_angle = sum_angles / static_cast<double>(servo_handles_.size());
+    if (servo_measurements > 0)
+    {
+      avg_servo_angle = sum_angles / static_cast<double>(servo_measurements);
+    }
+  }
+
+  double avg_wheel_linear_speed = 0.0;
+  size_t wheel_measurements = 0;
+  for (const auto & wheel : wheel_handles_)
+  {
+    if (wheel.velocity_state)
+    {
+      avg_wheel_linear_speed += wheel.direction * wheel.velocity_state->get_value() * wheel_radius_;
+      wheel_measurements++;
+    }
+  }
+  if (wheel_measurements > 0)
+  {
+    avg_wheel_linear_speed /= static_cast<double>(wheel_measurements);
+    if (std::abs(avg_wheel_linear_speed) < twist_linear_deadband_)
+    {
+      avg_wheel_linear_speed = 0.0;
+    }
   }
 
   const double steering_error = shortest_angular_distance(avg_servo_angle, desired_angle);
@@ -363,10 +463,17 @@ controller_interface::return_type RockerBogieController::update(
 
   for (auto & wheel : wheel_handles_)
   {
-    wheel.command->set_value(wheel.direction * forward_sign * wheel_command_speed);
+    wheel.command->set_value(
+      wheel.direction * forward_sign * wheel_command_speed * inv_wheel_radius);
   }
 
   publish_joint_states(time);
+  if (wheel_measurements > 0 && servo_measurements > 0)
+  {
+    const double linear_x = avg_wheel_linear_speed * std::cos(avg_servo_angle);
+    const double linear_y = avg_wheel_linear_speed * std::sin(avg_servo_angle);
+    publish_twist(time, linear_x, linear_y, 0.0);
+  }
 
   return controller_interface::return_type::OK;
 }
@@ -469,6 +576,24 @@ void RockerBogieController::publish_joint_states(const rclcpp::Time & time)
 
   joint_state_publisher_->publish(msg);
   last_state_publish_time_ = time;
+}
+
+void RockerBogieController::publish_twist(
+  const rclcpp::Time & time, double linear_x, double linear_y, double angular_z)
+{
+  if (!publish_twist_ || !twist_publisher_)
+  {
+    return;
+  }
+
+  geometry_msgs::msg::TwistWithCovarianceStamped msg;
+  msg.header.stamp = time;
+  msg.header.frame_id = twist_frame_id_;
+  msg.twist.twist.linear.x = linear_x;
+  msg.twist.twist.linear.y = linear_y;
+  msg.twist.twist.angular.z = angular_z;
+  std::copy(twist_covariance_.begin(), twist_covariance_.end(), msg.twist.covariance.begin());
+  twist_publisher_->publish(msg);
 }
 }  // namespace rocker_bogie_controller
 

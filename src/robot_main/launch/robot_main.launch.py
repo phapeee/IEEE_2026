@@ -472,9 +472,14 @@ def _create_initial_pose_publisher_nodes(config: Dict[str, Any], global_namespac
     x = float(node_cfg.get("x", 0.0))
     y = float(node_cfg.get("y", 0.0))
     yaw = float(node_cfg.get("yaw", 0.0))
-    frame_id = str(node_cfg.get("frame_id", "map"))
+    frame_id = _namespaced_frame_id(global_namespace, node_cfg.get("frame_id", "map"))
     topic = _namespaced_topic(global_namespace, node_cfg.get("topic", "initialpose"))
     delay_sec = float(node_cfg.get("delay_sec", 1.0))
+    tf_publish = bool(node_cfg.get("tf_publish", False))
+    tf_parent_frame = _namespaced_frame_id(
+        global_namespace, node_cfg.get("tf_parent_frame", frame_id))
+    tf_child_frame = _namespaced_frame_id(
+        global_namespace, node_cfg.get("tf_child_frame", "base_link"))
 
     half_yaw = yaw * 0.5
     qz = math.sin(half_yaw)
@@ -493,27 +498,55 @@ def _create_initial_pose_publisher_nodes(config: Dict[str, Any], global_namespac
         f"covariance: [{covariance_str}]}}}}"
     )
 
+    initial_pose_script = Path("/ws/scripts/initial_pose_publisher.py")
     publisher_cmd = [
-        "ros2",
-        "topic",
-        "pub",
-        "-1",
+        "python3",
+        str(initial_pose_script),
+        "--topic",
         topic,
-        "geometry_msgs/PoseWithCovarianceStamped",
-        pose_msg,
+        "--frame-id",
+        frame_id,
+        "--x",
+        str(x),
+        "--y",
+        str(y),
+        "--yaw",
+        str(yaw),
+        "--delay",
+        str(delay_sec),
     ]
 
-    return [
-        TimerAction(
-            period=delay_sec,
-            actions=[
-                ExecuteProcess(
-                    cmd=publisher_cmd,
-                    output=node_cfg.get("output", "screen"),
-                )
-            ],
+    actions: List[Any] = [
+        ExecuteProcess(
+            cmd=publisher_cmd,
+            output=node_cfg.get("output", "screen"),
         )
     ]
+
+    if tf_publish:
+        static_tf_cmd = [
+            "ros2",
+            "run",
+            "tf2_ros",
+            "static_transform_publisher",
+            str(x),
+            str(y),
+            "0.0",
+            "0.0",
+            "0.0",
+            str(qz),
+            str(qw),
+            tf_parent_frame,
+            tf_child_frame,
+        ]
+        actions.append(
+            ExecuteProcess(
+                cmd=static_tf_cmd,
+                output=node_cfg.get("output", "screen"),
+            )
+        )
+
+    return actions
 
 
 def _create_laser_scan_merger_nodes(config: Dict[str, Any], global_namespace: str) -> List[Node]:

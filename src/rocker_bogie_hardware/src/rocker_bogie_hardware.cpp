@@ -1,6 +1,7 @@
 #include "rocker_bogie_hardware/rocker_bogie_hardware.hpp"
 
 #include <algorithm>
+#include <cmath>
 #include <limits>
 #include <sstream>
 #include <string>
@@ -93,6 +94,7 @@ hardware_interface::CallbackReturn RockerBogieHardware::on_init(
 
   position_states_.assign(joint_names_.size(), 0.0);
   velocity_states_.assign(joint_names_.size(), 0.0);
+  last_command_snapshot_.assign(joint_names_.size(), 0.0);
 
   const auto state_topic_it = info_.hardware_parameters.find("state_topic");
   if (state_topic_it == info_.hardware_parameters.end())
@@ -122,6 +124,8 @@ hardware_interface::CallbackReturn RockerBogieHardware::on_init(
   state_timeout_ = get_numeric_parameter<double>(info_, "state_timeout", state_timeout_, logger_);
   command_publish_period_ = get_numeric_parameter<double>(
     info_, "command_publish_period", command_publish_period_, logger_);
+  command_publish_epsilon_ = get_numeric_parameter<double>(
+    info_, "command_publish_epsilon", command_publish_epsilon_, logger_);
 
   return hardware_interface::CallbackReturn::SUCCESS;
 }
@@ -308,22 +312,43 @@ void RockerBogieHardware::publish_command(const rclcpp::Time & now)
   cmd_msg.name = hardware_joint_names_;
   cmd_msg.position.assign(cmd_msg.name.size(), 0.0);
   cmd_msg.velocity.assign(cmd_msg.name.size(), 0.0);
+  std::vector<double> current_snapshot(joint_names_.size(), 0.0);
+  bool command_changed = false;
+  bool active_motion = false;
   for (size_t idx = 0; idx < joint_names_.size(); ++idx)
   {
     const auto mode = joint_command_modes_[idx];
     const auto command_index = joint_command_indices_[idx];
+    double current_value = 0.0;
     if (mode == CommandMode::POSITION)
     {
-      cmd_msg.position[idx] = position_commands_[command_index];
+      current_value = position_commands_[command_index];
+      cmd_msg.position[idx] = current_value;
     }
     else
     {
-      cmd_msg.velocity[idx] = velocity_commands_[command_index];
+      current_value = velocity_commands_[command_index];
+      cmd_msg.velocity[idx] = current_value;
+      if (std::abs(current_value) > command_publish_epsilon_)
+      {
+        active_motion = true;
+      }
     }
+    current_snapshot[idx] = current_value;
+    if (std::abs(current_value - last_command_snapshot_[idx]) > command_publish_epsilon_)
+    {
+      command_changed = true;
+    }
+  }
+
+  if (!command_changed && !active_motion)
+  {
+    return;
   }
 
   command_publisher_->publish(cmd_msg);
   last_command_publish_time_ = now;
+  last_command_snapshot_ = std::move(current_snapshot);
 }
 
 bool RockerBogieHardware::validate_joint(const hardware_interface::ComponentInfo & joint) const

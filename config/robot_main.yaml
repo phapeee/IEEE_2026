@@ -49,6 +49,9 @@ components:
     frame_id: map
     topic: initialpose
     delay_sec: 0.0
+    tf_publish: false
+    tf_parent_frame: map
+    tf_child_frame: base_link
 
   nav2_lifecycle_manager:
     enabled: false

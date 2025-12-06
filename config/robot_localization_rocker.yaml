@@ -1,0 +1,46 @@
+ekf_filter_node:
+  ros__parameters:
+    frequency: 30.0
+    sensor_timeout: 0.5          # <- loosen for UWB (often <10 Hz)
+    two_d_mode: true
+    publish_tf: true
+
+    map_frame: map
+    odom_frame: odom
+    base_link_frame: base_link
+    world_frame: odom
+
+    # initial_state: [
+    #   0.0, 0.0, 0.0,     # start x,y near your UWB
+    #   0.0, 0.0, 0.0,     # roll,pitch,yaw
+    #   0.0, 0.0, 0.0,     # velocities
+    #   0.0, 0.0, 0.0,     # angular velocities
+    #   0.0, 0.0, 0.0      # accelerations
+    # ]
+
+    # -------- IMU (yaw + yaw rate only) --------
+    imu0: /imu_calibrated
+    imu0_config: [
+      false, false, false,   # x, y, z
+      false, false, true,    # roll, pitch, yaw
+      false, false, false,   # vx, vy, vz
+      false, false, true,    # vroll, vpitch, vyaw
+      false, false, false    # ax, ay, az
+    ]
+    imu0_queue_size: 10
+    imu0_differential: false
+    imu0_relative: false      # <- change to false
+    imu0_remove_gravitational_acceleration: true
+
+    # -------- Rocker controller twist (linear vx/vy + yaw rate) --------
+    twist0: /rocker_bogie_controller/twist
+    twist0_config: [
+      false, false, false,    # x, y, z
+      false, false, false,    # roll, pitch, yaw
+      true, true, false,      # vx, vy, vz
+      false, false, true,     # vroll, vpitch, vyaw
+      false, false, false     # ax, ay, az
+    ]
+    twist0_queue_size: 10
+    twist0_differential: false
+    twist0_relative: false

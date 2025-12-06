@@ -1,4 +1,4 @@
-/rocker/controller_manager:
+controller_manager:
   ros__parameters:
     update_rate: 50
 
@@ -7,7 +7,7 @@
     joint_state_broadcaster:
       type: "joint_state_broadcaster/JointStateBroadcaster"
 
-/rocker/rocker_bogie_controller:
+rocker_bogie_controller:
   ros__parameters:
     wheel_joints:
       - Left_Front_Wheel
@@ -45,16 +45,20 @@
       - Right_Rear_Wheel
     cmd_vel_topic: "cmd_vel_stamped"
     publish_joint_states: true
+    publish_twist: true
     publish_rate: 50.0
     cmd_vel_timeout: 0.5
     left_wheel_direction: 1.0
     right_wheel_direction: -1.0
+    wheel_radius: 0.026
     min_steering_angle_deg: 3.0
     max_steering_angle_deg: 10.0
     servo_max_angle_deg: 90.0
-    wheel_distance_x: 0.25
-    wheel_distance_y: 0.2
+    wheel_distance_x: 0.13
+    wheel_distance_y: 0.115
     yaw_deadband: 0.01
+    twist_frame_id: "base_link"
+    twist_covariance_diagonal: [0.01, 0.01, 1e6, 1e6, 1e6, 0.01]
 
-/rocker/joint_state_broadcaster:
+joint_state_broadcaster:
   ros__parameters: {}

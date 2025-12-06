@@ -3,6 +3,7 @@
 
 #include <controller_interface/controller_interface.hpp>
 #include <geometry_msgs/msg/twist_stamped.hpp>
+#include <geometry_msgs/msg/twist_with_covariance_stamped.hpp>
 #include <hardware_interface/loaned_command_interface.hpp>
 #include <hardware_interface/loaned_state_interface.hpp>
 #include <hardware_interface/types/hardware_interface_type_values.hpp>
@@ -10,6 +11,7 @@
 #include <rclcpp/rclcpp.hpp>
 #include <sensor_msgs/msg/joint_state.hpp>
 
+#include <array>
 #include <mutex>
 #include <string>
 #include <unordered_map>
@@ -62,6 +64,8 @@ private:
   hardware_interface::LoanedStateInterface * find_state_handle(
     const std::string & joint_name, const std::string & interface_name);
   void publish_joint_states(const rclcpp::Time & time);
+  void publish_twist(
+    const rclcpp::Time & time, double linear_x, double linear_y, double angular_z);
   double normalized_angle(double angle) const;
   double shortest_angular_distance(double from, double to) const;
 
@@ -75,9 +79,11 @@ private:
 
   rclcpp::Subscription<geometry_msgs::msg::TwistStamped>::SharedPtr cmd_vel_subscription_;
   rclcpp::Publisher<sensor_msgs::msg::JointState>::SharedPtr joint_state_publisher_;
+  rclcpp::Publisher<geometry_msgs::msg::TwistWithCovarianceStamped>::SharedPtr twist_publisher_;
 
   std::string cmd_vel_topic_{"/cmd_vel"};
   bool publish_joint_states_{true};
+  bool publish_twist_{false};
   double publish_rate_{50.0};
   double cmd_vel_timeout_{0.5};
   double left_forward_direction_{1.0};
@@ -86,9 +92,14 @@ private:
   double max_steering_angle_{0.2};
   double servo_max_angle_{M_PI_2};
   double strafe_deadband_{0.01};
+  double wheel_radius_{0.05};
+  double wheel_radius_inv_{20.0};
   double wheel_distance_x_{0.1};
   double wheel_distance_y_{0.1};
   double yaw_deadband_{0.01};
+  std::string twist_frame_id_{"odom"};
+  std::array<double, 36> twist_covariance_{};
+  double twist_linear_deadband_{1e-3};
 
   double last_linear_cmd_{0.0};
   double last_lateral_cmd_{0.0};
