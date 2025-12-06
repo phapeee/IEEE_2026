@@ -1,0 +1,49 @@
+services:
+  isaac-sim:
+    image: nvcr.io/nvidia/isaac-sim:5.1.0
+    container_name: isaac-sim
+    network_mode: host
+    gpus: all
+    entrypoint: ["bash"]
+    stdin_open: true 
+    tty: true     
+    # user: "1234:1234"
+    environment:
+      - ACCEPT_EULA=Y
+      - PRIVACY_CONSENT=Y
+      - ROS_DOMAIN_ID=42
+      - DISPLAY=${DISPLAY}
+      - RMW_IMPLEMENTATION=rmw_cyclonedds_cpp
+    volumes:
+      - ${HOME}/.Xauthority:/isaac-sim/.Xauthority
+      - ${HOME}/docker/isaac-sim/cache/main:/isaac-sim/.cache:rw
+      - ${HOME}/docker/isaac-sim/cache/computecache:/isaac-sim/.nv/ComputeCache:rw
+      - ${HOME}/docker/isaac-sim/logs:/isaac-sim/.nvidia-omniverse/logs:rw
+      - ${HOME}/docker/isaac-sim/config:/isaac-sim/.nvidia-omniverse/config:rw
+      - ${HOME}/docker/isaac-sim/data:/isaac-sim/.local/share/ov/data:rw
+      - ${HOME}/docker/isaac-sim/pkg:/isaac-sim/.local/share/ov/pkg:rw
+      - ${HOME}/docker/isaac-sim/projects:/isaac-sim/projects:rw
+      - /tmp/.X11-unix:/tmp/.X11-unix
+    working_dir: /isaac-sim
+    command: ["-lc", "./runapp.sh"]
+
+    # Sleep indefinitely to keep the container running
+    # command: ["-lc", "sleep infinity"]
+
+  ros-dev:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    network_mode: host
+    ipc: host
+    gpus: all
+    environment:
+      - NVIDIA_VISIBLE_DEVICES=all
+      - NVIDIA_DRIVER_CAPABILITIES=all
+      - ROS_DOMAIN_ID=42
+      - RMW_IMPLEMENTATION=rmw_cyclonedds_cpp
+      - TZ=${TZ:-America/New_York}
+    volumes:
+      - ./ros2_ws_rocker_bogie:/ws:rw
+      - ./ros_data:/root/.ros:rw
+    working_dir: /ws
