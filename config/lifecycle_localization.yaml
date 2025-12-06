@@ -3,4 +3,4 @@ lifecycle_manager_localization:
     use_sim_time: false
     autostart: true
     node_names:
-      - amcl
+      - map_server

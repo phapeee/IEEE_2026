@@ -1,4 +1,3 @@
-namespace: "bot_0"
 components:
   cmd_vel_relay:
     enabled: false
@@ -11,17 +10,17 @@ components:
   controller_manager:
     enabled: false
     params_file:
-      - "/ws/config/ros2_controllers_bot_0.yaml"
+      - "/ws/config/ros2_controllers.yaml"
 
   joint_state_broadcaster_spawner:
     enabled: false
     controller_name: joint_state_broadcaster
-    controller_manager: /bot_0/controller_manager
+    controller_manager: /controller_manager
 
   mecanum_controller_spawner:
     enabled: false
     controller_name: mecanum_controller
-    controller_manager: /bot_0/controller_manager
+    controller_manager: /controller_manager
 
   robot_state_publisher:
     enabled: true
@@ -29,17 +28,9 @@ components:
       publish_robot_description: true
       robot_description: "$(xacro /ws/config/rocker.urdf)"
 
-  uwb_triangulaion:
-    enabled: false
-    params_file: "/ws/config/uwb_config.yaml"
-
   robot_localization:
     enabled: false
     params_file: "/ws/config/robot_localization.yaml"
-
-  nav2_amcl:
-    enabled: false
-    params_file: "/ws/config/nav2_amcl.yaml"
 
   initial_pose_publisher:
     enabled: false
@@ -57,32 +48,14 @@ components:
     enabled: false
     params_file: "/ws/config/lifecycle_localization.yaml"
 
-  laser_scan_merger:
-    enabled: false
-    params_file: "/ws/config/laser_scan_merger.yaml"
-
   imu_calibration:
     enabled: false
     params_file: "/ws/config/imu_calibration.yaml"
 
-  pointcloud_concatenate:
-    enabled: false
-    name: pointcloud_concatenate
-    params_file: "/ws/config/pointcloud_concatenate.yaml"
+  nav2_map_server:
+    enabled: true
+    params_file: "/ws/config/nav2_map_server.yaml"
 
-  pointcloud_to_laserscan_left:
-    enabled: false
-    params_file: "/ws/config/pointcloud_to_laserscan_left.yaml"
-    cloud_topic: "left_depth_pcl"
-    scan_topic: "left_laser_scan"
-
-  pointcloud_to_laserscan_right:
-    enabled: false
-    params_file: "/ws/config/pointcloud_to_laserscan_right.yaml"
-    cloud_topic: "right_depth_pcl"
-    scan_topic: "right_laser_scan"
-
-  pointcloud_filter:
-    enabled: false
-    params_file: "/ws/config/pointcloud_filter.yaml"
-# I have /bot_0/imu_data (sensor_msgs/msg/Imu), /bot_0/uwb_data (uwb_msgs/msg/IntFloatArrayStamped), 
+  nav2_lifecycle_manager:
+    enabled: true
+    params_file: "/ws/config/lifecycle_localization.yaml"

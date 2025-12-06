@@ -1,4 +1,4 @@
-/bot_0/controller_manager:
+controller_manager:
   ros__parameters:
     update_rate: 50 # Hz
 
@@ -7,7 +7,7 @@
     joint_state_broadcaster:
       type: "joint_state_broadcaster/JointStateBroadcaster"
 
-/bot_0/mecanum_controller:
+mecanum_controller:
   ros__parameters:
     # How long a cmd is valid (seconds)
     reference_timeout: 0.25
@@ -33,13 +33,13 @@
       sum_of_robot_center_projection_on_X_Y_axis: 0.0972
 
     # FRAMES & TF
-    base_frame_id: "bot_0/base_link"
-    odom_frame_id: "bot_0/odom"
+    base_frame_id: "base_link"
+    odom_frame_id: "odom"
     enable_odom_tf: false
 
     # Optional but recommended
     twist_covariance_diagonal: [0.1, 0.1, 1e10, 1e10, 1e10, 0.001]
     pose_covariance_diagonal:  [0.001, 0.001, 1e10, 1e10, 1e10, 0.001]
 
-/bot_0/joint_state_broadcaster:
+joint_state_broadcaster:
   ros__parameters: {}

@@ -1,7 +1,0 @@
-laser_scan_merger_node:
-  ros__parameters:
-    input_topics:
-      - "left_laser_scan"
-      - "right_laser_scan"
-    output_topic: "scan"
-    max_age_sec: 0.5

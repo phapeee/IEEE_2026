@@ -1,8 +1,0 @@
-<library path="isaac_topic_hardware">
-  <class
-    name="isaac_topic_hardware/IsaacTopicHardware"
-    type="isaac_topic_hardware::IsaacTopicHardware"
-    base_class_type="hardware_interface::SystemInterface">
-    <description>ros2_control SystemInterface that bridges state and command topics.</description>
-  </class>
-</library>

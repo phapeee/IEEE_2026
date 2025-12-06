@@ -1,8 +1,0 @@
-<library path="rocker_bogie_hardware">
-  <class
-    name="rocker_bogie_hardware/RockerBogieHardware"
-    type="rocker_bogie_hardware::RockerBogieHardware"
-    base_class_type="hardware_interface::SystemInterface">
-    <description>ros2_control SystemInterface that bridges state and command topics.</description>
-  </class>
-</library>
