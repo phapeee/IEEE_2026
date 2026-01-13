@@ -1,0 +1,19 @@
+limit_switch_calibration:
+  ros__parameters:
+    cmd_vel_topic: "/mecanum_controller/reference"
+    cmd_vel_frame_id: "base_link"
+    start_topic: "limit_switch_calibration/start"
+    status_topic: "limit_switch_calibration/status"
+    smacc_event_topic: "smacc2/calibration_events"
+    event_object_tag: "LimitSwitchCalibration"
+    event_source: "robot_main/limit_switch_calibration"
+    success_event_type: "CALIBRATION_SUCCESS"
+    failure_event_type: "CALIBRATION_FAILURE"
+    default_timeout_sec: 6.0
+    move_publish_rate_hz: 25.0
+    set_pose_service: "/set_pose"
+    state_machine_file: "/ws/config/limit_switch_sequences.yaml"
+    front_switch_topic: "smacc2/front_switch_state"
+    back_switch_topic: "smacc2/back_switch_state"
+    left_switch_topic: "smacc2/left_switch_state"
+    right_switch_topic: "smacc2/right_switch_state"

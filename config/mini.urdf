@@ -13,7 +13,7 @@
   <link name="${ns_prefix}rear_left_wheel_link"/>
   <link name="${ns_prefix}front_left_wheel_link"/>
   <link name="${ns_prefix}front_right_wheel_link"/>
-  <link name="${ns_prefix}imu"/>
+  <link name="${ns_prefix}imu_link"/>
 
   <!-- base_link -> wheel stacks (rotated +90 deg about base_link z) -->
   <joint name="Rear_Right_Wheel" type="continuous">
@@ -51,7 +51,7 @@
   <joint name="base_link_IMU" type="fixed">
     <origin xyz="0.0 0.0 0.0" rpy="0.0 0.0 0.0" />
     <parent link="${ns_prefix}base_link" />
-    <child link="${ns_prefix}imu" />
+    <child link="${ns_prefix}imu_link" />
   </joint>
   
   <xacro:mini_ros2_control robot_namespace="${robot_ns}"/>

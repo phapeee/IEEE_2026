@@ -6,9 +6,9 @@ ekf_filter_node:
     publish_tf: true
 
     map_frame: map
-    odom_frame: bot_0/odom
-    base_link_frame: bot_0/base_link
-    world_frame: map
+    odom_frame: odom
+    base_link_frame: base_link
+    world_frame: odom
 
     # initial_state: [
     #   0.0, 0.0, 0.0,     # start x,y near your UWB
@@ -19,10 +19,10 @@ ekf_filter_node:
     # ]
 
     # -------- IMU (yaw + yaw rate only) --------
-    imu0: /bot_0/imu
+    imu0: /imu
     imu0_config: [
       false, false, false,   # x, y, z
-      false, false, true,    # roll, pitch, yaw
+      false, false, false,    # roll, pitch, yaw
       false, false, false,   # vx, vy, vz
       false, false, true,    # vroll, vpitch, vyaw
       false, false, false    # ax, ay, az
@@ -32,29 +32,15 @@ ekf_filter_node:
     imu0_relative: false      # <- change to false
     imu0_remove_gravitational_acceleration: true
 
-    # -------- UWB pose as pose0 --------
-    # pose0: /bot_0/uwb_pose   # geometry_msgs/PoseWithCovarianceStamped
-    # pose0_config: [
-    #   true, true, false,     # x, y
-    #   false, false, false,     # no orientation
-    #   false, false, false,     # no linear velocities
-    #   false, false, false,     # no angular velocities
-    #   false, false, false      # no accelerations
-    # ]
-    # pose0_queue_size: 10
-    # pose0_differential: false
-    # pose0_relative: false
-    # pose0_nodelay: false
-
     print_diagnostics: true
     use_control: false
 
-    odom0: /bot_0/mecanum_controller/odometry
+    odom0: /mecanum_controller/odometry
     odom0_config: [
+      false, false, false, 
+      false, false, false, 
       true, true, false, 
-      false, false, true, 
-      true, true, false, 
-      false, false, true, 
+      false, false, false, 
       false, false, false
     ]
     odom0_queue_size: 10

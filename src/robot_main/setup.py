@@ -17,7 +17,10 @@ setup(
             ],
         ),
     ],
-    install_requires=["setuptools"],
+    install_requires=[
+        "setuptools",
+        "pyserial>=3.5",
+    ],
     zip_safe=True,
     maintainer="User",
     maintainer_email="user@example.com",

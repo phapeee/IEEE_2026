@@ -1,0 +1,14 @@
+package.xml
+setup.cfg
+setup.py
+launch/robot_main.launch.py
+launch/robot_main_hq.launch.py
+resource/robot_main
+robot_main/__init__.py
+robot_main.egg-info/PKG-INFO
+robot_main.egg-info/SOURCES.txt
+robot_main.egg-info/dependency_links.txt
+robot_main.egg-info/requires.txt
+robot_main.egg-info/top_level.txt
+robot_main.egg-info/zip-safe
+test/test_opencr_protocol.py

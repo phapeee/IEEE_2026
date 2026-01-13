@@ -1,0 +1,32 @@
+holonomic_pi_controller:
+  ros__parameters:
+    action_name: "navigate_to_pose"
+    cmd_vel_topic: "/mecanum_controller/reference"
+    cmd_vel_frame_id: "base_link"
+    unstamped_cmd_vel_topic: "/cmd_vel"
+    debug_enabled: true
+    debug_error_topic: "/holonomic_pi_controller/error"
+    debug_distance_topic: "/holonomic_pi_controller/distance"
+    global_frame: "map"
+    base_frame: "base_link"
+    control_rate_hz: 30.0
+    position_tolerance: 0.05
+    yaw_tolerance: 0.05
+    slowdown_distance: 0.3
+    yaw_slowdown_threshold: 0.5
+    kp_xy: 1.5
+    ki_xy: 0.0
+    kp_yaw: 2.5
+    ki_yaw: 0.0
+    integrator_limit_xy: 0.3
+    integrator_limit_yaw: 0.5
+    max_linear_speed: 0.3
+    min_linear_speed: 0.05
+    max_angular_speed: 0.5
+    min_angular_speed: 0.05
+    max_linear_accel: 0.3
+    max_linear_decel: 0.6
+    max_angular_accel: 0.5
+    max_angular_decel: 2.0
+    goal_timeout_sec: 120.0
+    transform_timeout_sec: 1.0

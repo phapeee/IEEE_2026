@@ -1,0 +1,6 @@
+wit_imu_node:
+  ros__parameters:
+    device: /dev/ttyUSB0
+    baud: 115200
+    frame_id: imu_link
+    gravity: 9.80665

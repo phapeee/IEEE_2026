@@ -1,0 +1,344 @@
+mission:
+  waypoints:
+    - name: start
+      coord:
+        x: 0.1778
+        y: 0.1778
+        yaw_deg: 90.0
+        frame: map
+      task:
+        name: imu_calibration_service
+
+    - name: antenna_button_position
+      coord:
+        x: 0.1778
+        y: 0.85
+        yaw_deg: 90.0
+        frame: map
+      task:
+        name: antenna_button_cali
+
+    - name: antenna_button_position
+      coord:
+        x: 0.1651
+        y: 0.8636
+        yaw_deg: 90.0
+        frame: map
+      task:
+        name: wait
+        duration_sec: 1.5
+
+    - name: move
+      coord:
+        x: 0.25
+        y: 0.75
+        yaw_deg: 90.0
+        frame: map
+      task:
+        name: wait
+        duration_sec: 0.0
+
+    - name: move
+      coord:
+        x: 0.25
+        y: 0.75
+        yaw_deg: 180.0
+        frame: map
+      task:
+        name: wait
+        duration_sec: 0.0
+
+    - name: move
+      coord:
+        x: 0.25
+        y: 0.88
+        yaw_deg: 180.0
+        frame: map
+      task:
+        name: wait
+        duration_sec: 0.0
+
+    - name: move
+      coord:
+        x: 0.8
+        y: 0.88
+        yaw_deg: 180.0
+        frame: map
+      task:
+        name: wait
+        duration_sec: 0.0
+
+    - name: move
+      coord:
+        x: 0.45
+        y: 0.88
+        yaw_deg: 180.0
+        frame: map
+      task:
+        name: wait
+        duration_sec: 0.0
+
+    - name: move
+      coord:
+        x: 0.45
+        y: 0.88
+        yaw_deg: -90.0
+        frame: map
+      task:
+        name: wait
+        duration_sec: 0.0
+
+    - name: move
+      coord:
+        x: 0.45
+        y: 0.18
+        yaw_deg: -90.0
+        frame: map
+      task:
+        name: south_wall_cali
+
+    - name: move
+      coord:
+        x: 0.75
+        y: 0.1651
+        yaw_deg: -90.0
+        frame: map
+      task:
+        name: wait
+        duration_sec: 0.0
+
+    - name: antenna_keypad_position
+      coord:
+        x: 0.75
+        y: 0.1651
+        yaw_deg: -90.0
+        frame: map
+      task:
+        name: antenna_keypad_cali
+
+    - name: move
+      coord:
+        x: 0.809625
+        y: 0.85
+        yaw_deg: -90.0
+        frame: map
+      task:
+        name: wait
+        duration_sec: 0.0
+
+    - name: move
+      coord:
+        x: 0.809625
+        y: 0.4318
+        yaw_deg: -90.0
+        frame: map
+      task:
+        name: wait
+        duration_sec: 0.0
+
+    - name: move
+      coord:
+        x: 1.07
+        y: 0.4318
+        yaw_deg: -90.0
+        frame: map
+      task:
+        name: antenna_keypad_cali_2
+
+    - name: move
+      coord:
+        x: 1.0
+        y: 0.5
+        yaw_deg: -90.0
+        frame: map
+      task:
+        name: wait
+        duration_sec: 0.0
+
+    - name: move
+      coord:
+        x: 1.0
+        y: 0.5
+        yaw_deg: 135.0
+        frame: map
+      task:
+        name: wait
+        duration_sec: 0.0
+
+    - name: move
+      coord:
+        x: 1.35
+        y: 0.15
+        yaw_deg: 135.0
+        frame: map
+      task:
+        name: wait
+        duration_sec: 0.0
+
+    - name: move
+      coord:
+        x: 1.35
+        y: 0.15
+        yaw_deg: 180.0
+        frame: map
+      task:
+        name: wait
+        duration_sec: 0.0
+
+    - name: move
+      coord:
+        x: 2.15
+        y: 0.1651
+        yaw_deg: 180.0
+        frame: map
+      task:
+        name: wait
+        duration_sec: 0.0
+
+    - name: move
+      coord:
+        x: 2.05
+        y: 0.1651
+        yaw_deg: 180.0
+        frame: map
+      task:
+        name: wait
+        duration_sec: 0.0
+
+    - name: move
+      coord:
+        x: 2.05
+        y: 0.1651
+        yaw_deg: 90.0
+        frame: map
+      task:
+        name: wait
+        duration_sec: 0.0
+
+    - name: move
+      coord:
+        x: 2.05
+        y: 1.05
+        yaw_deg: 90.0
+        frame: map
+      task:
+        name: wait
+        duration_sec: 0.0
+
+    - name: move
+      coord:
+        x: 2.05
+        y: 1.05
+        yaw_deg: 90.0
+        frame: map
+      task:
+        name: antenna_rotary_cali
+
+    - name: move
+      coord:
+        x: 2.0955
+        y: 1.0
+        yaw_deg: 90.0
+        frame: map
+      task:
+        name: wait
+        duration_sec: 0.0
+
+    - name: move
+      coord:
+        x: 1.95
+        y: 1.0
+        yaw_deg: 90.0
+        frame: map
+      task:
+        name: wait
+        duration_sec: 0.0
+
+    - name: move
+      coord:
+        x: 1.95
+        y: 1.0
+        yaw_deg: 0.0
+        frame: map
+      task:
+        name: wait
+        duration_sec: 0.0
+
+    - name: move
+      coord:
+        x: 1.95
+        y: 1.05
+        yaw_deg: 0.0
+        frame: map
+      task:
+        name: north_wall_cali_2
+
+    - name: move
+      coord:
+        x: 1.0
+        y: 1.05
+        yaw_deg: 0.0
+        frame: map
+      task:
+        name: wait
+        duration_sec: 0.0
+
+    - name: move
+      coord:
+        x: 1.0
+        y: 1.05
+        yaw_deg: 0.0
+        frame: map
+      task:
+        name: wait
+        duration_sec: 0.0
+
+    - name: move
+      coord:
+        x: 1.0
+        y: 0.8
+        yaw_deg: 0.0
+        frame: map
+      task:
+        name: wait
+        duration_sec: 0.0
+
+    - name: move
+      coord:
+        x: 1.1
+        y: 0.8
+        yaw_deg: -125.0
+        frame: map
+      task:
+        name: wait
+        duration_sec: 0.0
+
+
+    # - name: move
+    #   coord:
+    #     x: 2.0955
+    #     y: 0.5207
+    #     yaw_deg: 90.0
+    #     frame: map
+    #   task:
+    #     name: wait
+    #     duration_sec: 0.0
+
+    # - name: move
+    #   coord:
+    #     x: 2.0955
+    #     y: 0.5207
+    #     yaw_deg: 180.0
+    #     frame: map
+    #   task:
+    #     name: wait
+    #     duration_sec: 0.0
+
+    # - name: move
+    #   coord:
+    #     x: 1.75
+    #     y: 0.6
+    #     yaw_deg: 180.0
+    #     frame: map
+    #   task:
+    #     name: crater_lap

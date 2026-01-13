@@ -1,0 +1,122 @@
+tasks:
+  wait:
+    type: wait
+    default_duration_sec: 1.0
+
+  imu_calibration_service:
+    type: service_call
+    service_name: "/trigger_imu_calibration"
+    service_type: "std_srvs/srv/Empty"
+    timeout_sec: 2.0
+
+  antenna_button_cali:
+    type: external_state_machine
+    # How to start the calibration SM
+    start:
+      topic: "limit_switch_calibration/start"
+      msg_type: "std_msgs/msg/String"
+      command: "antenna_button_cali"
+    # How to detect completion (from your limit-switch calib node)
+    result:
+      event_topic: "smacc2/calibration_events"
+      success_event_type: "CALIBRATION_SUCCESS"
+      failure_event_type: "CALIBRATION_FAILURE"
+      timeout_sec: 60.0
+
+  antenna_keypad_cali:
+    type: external_state_machine
+    # How to start the calibration SM
+    start:
+      topic: "limit_switch_calibration/start"
+      msg_type: "std_msgs/msg/String"
+      command: "antenna_keypad_cali"
+    # How to detect completion (from your limit-switch calib node)
+    result:
+      event_topic: "smacc2/calibration_events"
+      success_event_type: "CALIBRATION_SUCCESS"
+      failure_event_type: "CALIBRATION_FAILURE"
+      timeout_sec: 60.0
+
+  antenna_keypad_cali_2:
+    type: external_state_machine
+    # How to start the calibration SM
+    start:
+      topic: "limit_switch_calibration/start"
+      msg_type: "std_msgs/msg/String"
+      command: "antenna_keypad_cali_2"
+    # How to detect completion (from your limit-switch calib node)
+    result:
+      event_topic: "smacc2/calibration_events"
+      success_event_type: "CALIBRATION_SUCCESS"
+      failure_event_type: "CALIBRATION_FAILURE"
+      timeout_sec: 60.0
+
+  north_wall_cali:
+    type: external_state_machine
+    # How to start the calibration SM
+    start:
+      topic: "limit_switch_calibration/start"
+      msg_type: "std_msgs/msg/String"
+      command: "north_wall_cali"
+    # How to detect completion (from your limit-switch calib node)
+    result:
+      event_topic: "smacc2/calibration_events"
+      success_event_type: "CALIBRATION_SUCCESS"
+      failure_event_type: "CALIBRATION_FAILURE"
+      timeout_sec: 60.0
+  
+  antenna_rotary_cali:
+    type: external_state_machine
+    # How to start the calibration SM
+    start:
+      topic: "limit_switch_calibration/start"
+      msg_type: "std_msgs/msg/String"
+      command: "antenna_rotary_cali"
+    # How to detect completion (from your limit-switch calib node)
+    result:
+      event_topic: "smacc2/calibration_events"
+      success_event_type: "CALIBRATION_SUCCESS"
+      failure_event_type: "CALIBRATION_FAILURE"
+      timeout_sec: 60.0
+
+  crater_lap:
+    type: external_state_machine
+    # How to start the calibration SM
+    start:
+      topic: "limit_switch_calibration/start"
+      msg_type: "std_msgs/msg/String"
+      command: "crater_lap"
+    # How to detect completion (from your limit-switch calib node)
+    result:
+      event_topic: "smacc2/calibration_events"
+      success_event_type: "CALIBRATION_SUCCESS"
+      failure_event_type: "CALIBRATION_FAILURE"
+      timeout_sec: 60.0
+
+  south_wall_cali:
+    type: external_state_machine
+    # How to start the calibration SM
+    start:
+      topic: "limit_switch_calibration/start"
+      msg_type: "std_msgs/msg/String"
+      command: "south_wall_cali"
+    # How to detect completion (from your limit-switch calib node)
+    result:
+      event_topic: "smacc2/calibration_events"
+      success_event_type: "CALIBRATION_SUCCESS"
+      failure_event_type: "CALIBRATION_FAILURE"
+      timeout_sec: 60.0
+  
+  north_wall_cali_2:
+    type: external_state_machine
+    # How to start the calibration SM
+    start:
+      topic: "limit_switch_calibration/start"
+      msg_type: "std_msgs/msg/String"
+      command: "north_wall_cali_2"
+    # How to detect completion (from your limit-switch calib node)
+    result:
+      event_topic: "smacc2/calibration_events"
+      success_event_type: "CALIBRATION_SUCCESS"
+      failure_event_type: "CALIBRATION_FAILURE"
+      timeout_sec: 60.0

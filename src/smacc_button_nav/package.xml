@@ -1,0 +1,24 @@
+<?xml version="1.0"?>
+<package format="3">
+  <name>smacc_button_nav</name>
+  <version>0.1.0</version>
+  <description>SMACC2 state machine that sequences waypoint navigation from a GPIO button.</description>
+  <maintainer email="robot@example.com">Robot Dev</maintainer>
+  <license>Apache-2.0</license>
+
+  <buildtool_depend>ament_cmake</buildtool_depend>
+
+  <depend>geometry_msgs</depend>
+  <depend>controller_manager_msgs</depend>
+  <depend>nav2_msgs</depend>
+  <depend>rclcpp</depend>
+  <depend>rclcpp_action</depend>
+  <depend>robot_localization</depend>
+  <depend>smacc2</depend>
+  <depend>std_msgs</depend>
+  <depend>std_srvs</depend>
+
+  <export>
+    <build_type>ament_cmake</build_type>
+  </export>
+</package>

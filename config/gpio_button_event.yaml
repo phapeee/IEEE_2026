@@ -1,0 +1,53 @@
+gpio_button_event:
+  ros__parameters:
+    backend: gpiod
+    gpio_chip: "gpiochip0"
+    smacc_event_topic: "smacc2/button_event"
+    button_state_topic: "smacc2/button_state"
+    event_source: "robot_main/gpio_button_event"
+    switches:
+      - start_switch
+      - front_switch
+      - back_switch
+      - left_switch
+      - right_switch
+
+    switches.start_switch.gpio_line: 4
+    switches.start_switch.active_low: true
+    switches.start_switch.pullup: true
+    switches.start_switch.event_object_tag: "start_switch"
+    switches.start_switch.pressed_event_type: "start_switch"
+    switches.start_switch.released_event_type: "start_switch_released"
+    switches.start_switch.state_topic: "smacc2/start_switch_state"
+
+    switches.front_switch.gpio_line: 24
+    switches.front_switch.active_low: true
+    switches.front_switch.pullup: true
+    switches.front_switch.event_object_tag: "front_switch"
+    switches.front_switch.pressed_event_type: "front_switch"
+    switches.front_switch.released_event_type: "front_switch_released"
+    switches.front_switch.state_topic: "smacc2/front_switch_state"
+
+    switches.back_switch.gpio_line: 16
+    switches.back_switch.active_low: true
+    switches.back_switch.pullup: true
+    switches.back_switch.event_object_tag: "back_switch"
+    switches.back_switch.pressed_event_type: "back_switch"
+    switches.back_switch.released_event_type: "back_switch_released"
+    switches.back_switch.state_topic: "smacc2/back_switch_state"
+
+    switches.left_switch.gpio_line: 18
+    switches.left_switch.active_low: true
+    switches.left_switch.pullup: true
+    switches.left_switch.event_object_tag: "left_switch"
+    switches.left_switch.pressed_event_type: "left_switch"
+    switches.left_switch.released_event_type: "left_switch_released"
+    switches.left_switch.state_topic: "smacc2/left_switch_state"
+
+    switches.right_switch.gpio_line: 1
+    switches.right_switch.active_low: true
+    switches.right_switch.pullup: true
+    switches.right_switch.event_object_tag: "right_switch"
+    switches.right_switch.pressed_event_type: "right_switch"
+    switches.right_switch.released_event_type: "right_switch_released"
+    switches.right_switch.state_topic: "smacc2/right_switch_state"

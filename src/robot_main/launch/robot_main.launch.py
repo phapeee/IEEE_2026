@@ -1,31 +1,16 @@
 """Launch description for the robot_main global launcher."""
 
 import math
+import os
 from pathlib import Path
 from typing import Any, Dict, List
 
 import yaml
-
 from launch import LaunchDescription
-from launch.actions import DeclareLaunchArgument, OpaqueFunction, TimerAction, ExecuteProcess
-from launch.substitutions import LaunchConfiguration, Command, FindExecutable
+from launch.actions import DeclareLaunchArgument, ExecuteProcess, OpaqueFunction, TimerAction
+from launch.substitutions import Command, FindExecutable, LaunchConfiguration
 from launch_ros.actions import Node
 from launch_ros.parameter_descriptions import ParameterValue
-
-
-_COMPONENT_DEFAULTS: Dict[str, bool] = {
-    "pointcloud_to_laserscan": False,
-    "pointcloud_concatenate": False,
-    "pointcloud_filter": False,
-    "robot_localization": False,
-    "nav2_amcl": False,
-    "nav2_map_server": False,
-    "nav2_lifecycle_manager": False,
-    "laser_scan_merger": False,
-    "imu_calibration": False,
-    "uwb_triangulaion": False,
-    "initial_pose_publisher": False,
-}
 
 
 def generate_launch_description() -> LaunchDescription:
@@ -74,6 +59,12 @@ def _launch_components(context, *_: Any) -> List[Node]:
     xacro_command = [FindExecutable(name="xacro"), " ", robot_description_source]
     if robot_namespace_arg:
         xacro_command.extend([" ", f"robot_namespace:={robot_namespace_arg}"])
+    opencr_serial_port = os.environ.get("OPENCR_SERIAL_PORT")
+    opencr_serial_baud = os.environ.get("OPENCR_SERIAL_BAUD")
+    if opencr_serial_port:
+        xacro_command.extend([" ", f"opencr_serial_port:={opencr_serial_port}"])
+    if opencr_serial_baud:
+        xacro_command.extend([" ", f"opencr_baud_rate:={opencr_serial_baud}"])
 
     robot_description = ParameterValue(
         Command(xacro_command),
@@ -197,14 +188,24 @@ def _launch_components(context, *_: Any) -> List[Node]:
     if _component_enabled(config, "robot_localization"):
         nodes.extend(_create_robot_localization_nodes(config, global_namespace))
 
+    if _component_enabled(config, "wit_imu_driver"):
+        nodes.extend(_create_wit_imu_driver_nodes(config, global_namespace))
+
     if _component_enabled(config, "nav2_amcl"):
         nodes.extend(_create_nav2_amcl_nodes(config, global_namespace))
 
     if _component_enabled(config, "nav2_map_server"):
         nodes.extend(_create_nav2_map_server_nodes(config, global_namespace))
 
-    if _component_enabled(config, "nav2_lifecycle_manager"):
-        nodes.extend(_create_nav2_lifecycle_manager_nodes(config, global_namespace))
+    if _component_enabled(config, "nav2_stack"):
+        nodes.extend(_create_nav2_stack_nodes(config, global_namespace))
+
+    if _component_enabled(config, "holonomic_pi_controller"):
+        nodes.extend(_create_holonomic_pi_controller_nodes(config, global_namespace))
+
+    for component_name in _component_variant_names(config, "nav2_lifecycle_manager"):
+        if _component_enabled(config, component_name):
+            nodes.extend(_create_nav2_lifecycle_manager_nodes(config, global_namespace, component_name=component_name))
 
     if _component_enabled(config, "laser_scan_merger"):
         nodes.extend(_create_laser_scan_merger_nodes(config, global_namespace))
@@ -215,10 +216,120 @@ def _launch_components(context, *_: Any) -> List[Node]:
     if _component_enabled(config, "initial_pose_publisher"):
         nodes.extend(_create_initial_pose_publisher_nodes(config, global_namespace))
 
+    if _component_enabled(config, "gpio_button_event"):
+        nodes.extend(_create_gpio_button_event_nodes(config, global_namespace))
+
+    if _component_enabled(config, "limit_switch_calibration"):
+        nodes.extend(_create_limit_switch_calibration_nodes(config, global_namespace))
+
+    if _component_enabled(config, "waypoint_state_machine"):
+        nodes.extend(_create_waypoint_state_machine_nodes(config, global_namespace))
+
     if _component_enabled(config, "uwb_triangulaion"):
         nodes.extend(_create_uwb_triangulaion_nodes(config, global_namespace))
 
     return nodes
+
+
+def _create_gpio_button_event_nodes(config: Dict[str, Any], global_namespace: str) -> List[Node]:
+    node_cfg = _component_config(config, "gpio_button_event")
+    params_file = node_cfg.get("params_file")
+    inline_parameters = node_cfg.get("ros__parameters", {})
+    remappings = node_cfg.get("remappings", [])
+    if isinstance(remappings, dict):
+        remappings = list(remappings.items())
+
+    node_name = node_cfg.get("name", "gpio_button_event")
+    parameter_entries: List[Any] = []
+    if params_file:
+        loaded_parameters = _load_parameters_from_file(params_file, node_name)
+        if loaded_parameters:
+            parameter_entries.append(loaded_parameters)
+    if inline_parameters:
+        parameter_entries.append(inline_parameters)
+
+    node_namespace = _resolve_namespace(global_namespace, node_cfg.get("namespace"))
+    parameter_entries = _namespace_frame_ids(parameter_entries, global_namespace)
+
+    return [
+        Node(
+            package=node_cfg.get("package", "gpio_button_event"),
+            executable=node_cfg.get("executable", "gpio_button_event_node"),
+            name=node_name,
+            parameters=parameter_entries,
+            remappings=remappings,
+            namespace=node_namespace,
+            output=node_cfg.get("output", "screen"),
+        )
+    ]
+
+
+def _create_limit_switch_calibration_nodes(config: Dict[str, Any], global_namespace: str) -> List[Node]:
+    node_cfg = _component_config(config, "limit_switch_calibration")
+    params_file = node_cfg.get("params_file")
+    inline_parameters = node_cfg.get("ros__parameters", {})
+    remappings = node_cfg.get("remappings", [])
+    if isinstance(remappings, dict):
+        remappings = list(remappings.items())
+
+    node_name = node_cfg.get("name", "limit_switch_calibration")
+    parameter_entries: List[Any] = []
+    if params_file:
+        loaded_parameters = _load_parameters_from_file(params_file, node_name)
+        if loaded_parameters:
+            parameter_entries.append(loaded_parameters)
+    if inline_parameters:
+        parameter_entries.append(inline_parameters)
+
+    node_namespace = _resolve_namespace(global_namespace, node_cfg.get("namespace"))
+    parameter_entries = _namespace_frame_ids(parameter_entries, global_namespace)
+
+    return [
+        Node(
+            package=node_cfg.get("package", "limit_switch_calibration"),
+            executable=node_cfg.get("executable", "calibration_node"),
+            name=node_name,
+            parameters=parameter_entries,
+            remappings=remappings,
+            namespace=node_namespace,
+            output=node_cfg.get("output", "screen"),
+        )
+    ]
+
+
+def _create_waypoint_state_machine_nodes(config: Dict[str, Any], global_namespace: str) -> List[Node]:
+    node_cfg = _component_config(config, "waypoint_state_machine")
+    params_file = node_cfg.get("params_file")
+    inline_parameters = node_cfg.get("ros__parameters", {})
+    remappings = node_cfg.get("remappings", [])
+    if isinstance(remappings, dict):
+        remappings = list(remappings.items())
+
+    node_name = node_cfg.get("name", "waypoint_state_machine")
+    parameter_entries: List[Any] = []
+    if params_file:
+        loaded = _load_parameters_from_file(params_file, node_name)
+        if loaded:
+            parameter_entries.append(loaded)
+    if inline_parameters:
+        parameter_entries.append(inline_parameters)
+
+    node_namespace = _resolve_namespace(global_namespace, node_cfg.get("namespace"))
+    parameter_entries = _namespace_frame_ids(parameter_entries, global_namespace)
+
+    return [
+        Node(
+            package=node_cfg.get("package", "smacc_button_nav"),
+            executable=node_cfg.get("executable", "button_waypoint_sm"),
+            name=node_name,
+            # SIMPLE gdb: you will get a (gdb) prompt
+            # prefix='gdb --args',
+            parameters=parameter_entries,
+            remappings=remappings,
+            namespace=node_namespace,
+            output=node_cfg.get("output", "screen"),
+        )
+    ]
 
 
 def _create_pointcloud_to_laserscan_nodes(config: Dict[str, Any], global_namespace: str, component_name: str = "pointcloud_to_laserscan") -> List[Node]:
@@ -433,8 +544,107 @@ def _create_nav2_map_server_nodes(config: Dict[str, Any], global_namespace: str)
     ]
 
 
-def _create_nav2_lifecycle_manager_nodes(config: Dict[str, Any], global_namespace: str) -> List[Node]:
-    node_cfg = _component_config(config, "nav2_lifecycle_manager")
+_NAV2_STACK_NODE_DEFAULTS: Dict[str, Dict[str, str]] = {
+    "controller_server": {"package": "nav2_controller", "executable": "controller_server"},
+    "planner_server": {"package": "nav2_planner", "executable": "planner_server"},
+    "smoother_server": {"package": "nav2_smoother", "executable": "smoother_server"},
+    "behavior_server": {"package": "nav2_behaviors", "executable": "behavior_server"},
+    "bt_navigator": {"package": "nav2_bt_navigator", "executable": "bt_navigator"},
+    "waypoint_follower": {"package": "nav2_waypoint_follower", "executable": "waypoint_follower"},
+    "velocity_smoother": {"package": "nav2_velocity_smoother", "executable": "velocity_smoother"},
+}
+
+
+def _create_nav2_stack_nodes(config: Dict[str, Any], global_namespace: str) -> List[Node]:
+    node_cfg = _component_config(config, "nav2_stack")
+    params_file = node_cfg.get("params_file", _discover_default_config("nav2_params.yaml"))
+    nodes_to_launch = node_cfg.get("nodes") or list(_NAV2_STACK_NODE_DEFAULTS.keys())
+    overrides = node_cfg.get("node_overrides", {})
+    component_namespace = _resolve_namespace(global_namespace, node_cfg.get("namespace"))
+    default_output = node_cfg.get("output", "screen")
+
+    nav2_nodes: List[Node] = []
+    for nav2_node in nodes_to_launch:
+        defaults = _NAV2_STACK_NODE_DEFAULTS.get(nav2_node)
+        if not defaults:
+            continue
+        override_cfg = overrides.get(nav2_node, {})
+        package = override_cfg.get("package", defaults["package"])
+        executable = override_cfg.get("executable", defaults["executable"])
+        node_name = override_cfg.get("name", nav2_node)
+        node_namespace = _resolve_namespace(component_namespace, override_cfg.get("namespace"))
+        node_parameters: List[Any] = []
+        if params_file:
+            loaded_parameters = _load_parameters_from_file(params_file, nav2_node)
+            if loaded_parameters:
+                node_parameters.append(loaded_parameters)
+        inline_params = override_cfg.get("ros__parameters")
+        if isinstance(inline_params, dict) and inline_params:
+            node_parameters.append(inline_params)
+        node_parameters = _namespace_frame_ids(node_parameters, global_namespace)
+
+        remappings = override_cfg.get("remappings", [])
+        if isinstance(remappings, dict):
+            remappings = list(remappings.items())
+        elif not isinstance(remappings, list):
+            remappings = []
+        extra_arguments = override_cfg.get("extra_arguments", [])
+        if not isinstance(extra_arguments, list):
+            extra_arguments = [extra_arguments]
+
+        nav2_nodes.append(
+            Node(
+                package=package,
+                executable=executable,
+                name=node_name,
+                namespace=node_namespace,
+                parameters=node_parameters,
+                remappings=remappings,
+                arguments=extra_arguments,
+                output=override_cfg.get("output", default_output),
+            )
+        )
+
+    return nav2_nodes
+
+
+def _create_holonomic_pi_controller_nodes(config: Dict[str, Any], global_namespace: str) -> List[Node]:
+    node_cfg = _component_config(config, "holonomic_pi_controller")
+    params_file = node_cfg.get("params_file")
+    inline_parameters = node_cfg.get("ros__parameters", {})
+    remappings = node_cfg.get("remappings", [])
+    if isinstance(remappings, dict):
+        remappings = list(remappings.items())
+
+    parameter_entries: List[Any] = []
+    node_name = node_cfg.get("name", "holonomic_pi_controller")
+    if params_file:
+        loaded_parameters = _load_parameters_from_file(params_file, node_name)
+        if loaded_parameters:
+            parameter_entries.append(loaded_parameters)
+    if inline_parameters:
+        parameter_entries.append(inline_parameters)
+
+    node_namespace = _resolve_namespace(global_namespace, node_cfg.get("namespace"))
+    parameter_entries = _namespace_frame_ids(parameter_entries, global_namespace)
+
+    return [
+        Node(
+            package=node_cfg.get("package", "holonomic_pi_controller"),
+            executable=node_cfg.get("executable", "holonomic_pi_controller_node"),
+            name=node_name,
+            parameters=parameter_entries,
+            remappings=remappings,
+            namespace=node_namespace,
+            output=node_cfg.get("output", "screen"),
+        )
+    ]
+
+
+def _create_nav2_lifecycle_manager_nodes(
+    config: Dict[str, Any], global_namespace: str, component_name: str = "nav2_lifecycle_manager"
+) -> List[Node]:
+    node_cfg = _component_config(config, component_name)
     params_file = node_cfg.get("params_file", _discover_default_config("lifecycle_localization.yaml"))
     inline_parameters = node_cfg.get("ros__parameters", {})
     remappings = node_cfg.get("remappings", [])
@@ -469,17 +679,29 @@ def _create_nav2_lifecycle_manager_nodes(config: Dict[str, Any], global_namespac
 def _create_initial_pose_publisher_nodes(config: Dict[str, Any], global_namespace: str) -> List[Any]:
     """Publish a single initial pose message on the (namespaced) initialpose topic."""
     node_cfg = _component_config(config, "initial_pose_publisher")
-    x = float(node_cfg.get("x", 0.0))
-    y = float(node_cfg.get("y", 0.0))
-    yaw = float(node_cfg.get("yaw", 0.0))
-    frame_id = _namespaced_frame_id(global_namespace, node_cfg.get("frame_id", "map"))
-    topic = _namespaced_topic(global_namespace, node_cfg.get("topic", "initialpose"))
-    delay_sec = float(node_cfg.get("delay_sec", 1.0))
-    tf_publish = bool(node_cfg.get("tf_publish", False))
+    params_file = node_cfg.get("params_file")
+    loaded_cfg: Dict[str, Any] = {}
+    if params_file:
+        loaded_cfg = _load_parameters_from_file(params_file, node_cfg.get("name", "initial_pose_publisher"))
+
+    def _param(key: str, default: Any) -> Any:
+        if key in node_cfg and node_cfg.get(key) is not None:
+            return node_cfg.get(key)
+        if key in loaded_cfg and loaded_cfg.get(key) is not None:
+            return loaded_cfg.get(key)
+        return default
+
+    x = float(_param("x", 0.0))
+    y = float(_param("y", 0.0))
+    yaw = float(_param("yaw", 0.0))
+    frame_id = _namespaced_frame_id(global_namespace, _param("frame_id", "map"))
+    topic = _namespaced_topic(global_namespace, _param("topic", "initialpose"))
+    delay_sec = float(_param("delay_sec", 1.0))
+    tf_publish = bool(_param("tf_publish", False))
     tf_parent_frame = _namespaced_frame_id(
-        global_namespace, node_cfg.get("tf_parent_frame", frame_id))
+        global_namespace, _param("tf_parent_frame", frame_id))
     tf_child_frame = _namespaced_frame_id(
-        global_namespace, node_cfg.get("tf_child_frame", "base_link"))
+        global_namespace, _param("tf_child_frame", "base_link"))
 
     half_yaw = yaw * 0.5
     qz = math.sin(half_yaw)
@@ -649,6 +871,39 @@ def _create_imu_calibration_nodes(config: Dict[str, Any], global_namespace: str)
     ]
 
 
+def _create_wit_imu_driver_nodes(config: Dict[str, Any], global_namespace: str) -> List[Node]:
+    node_cfg = _component_config(config, "wit_imu_driver")
+    params_file = node_cfg.get("params_file", _discover_default_config("wit_imu_driver.yaml"))
+    inline_parameters = node_cfg.get("ros__parameters", {})
+    remappings = node_cfg.get("remappings", [])
+    if isinstance(remappings, dict):
+        remappings = list(remappings.items())
+
+    node_name = node_cfg.get("name", "wit_imu_node")
+    parameter_entries: List[Any] = []
+    if params_file:
+        loaded_parameters = _load_parameters_from_file(params_file, node_name)
+        if loaded_parameters:
+            parameter_entries.append(loaded_parameters)
+    if inline_parameters:
+        parameter_entries.append(inline_parameters)
+
+    node_namespace = _resolve_namespace(global_namespace, node_cfg.get("namespace"))
+    parameter_entries = _namespace_frame_ids(parameter_entries, global_namespace)
+
+    return [
+        Node(
+            package=node_cfg.get("package", "wit_imu_driver"),
+            executable=node_cfg.get("executable", "wit_imu_node"),
+            name=node_name,
+            parameters=parameter_entries,
+            remappings=remappings,
+            namespace=node_namespace,
+            output=node_cfg.get("output", "screen"),
+        )
+    ]
+
+
 def _build_robot_description_parameter(override: Any, default_value: ParameterValue) -> Dict[str, Any]:
     if override is None:
         return {"robot_description": default_value}
@@ -697,6 +952,81 @@ def _component_config(config: Dict[str, Any], name: str) -> Dict[str, Any]:
         return {"enabled": entry}
     return entry or {}
 
+
+def _component_requirements_met(component_name: str, component_cfg: Dict[str, Any]) -> bool:
+    requirement = component_cfg.get("requires_device")
+    disabled_reason = _requirement_disabled_reason(requirement)
+    if disabled_reason:
+        print(f"[robot_main.launch] Skipping '{component_name}': {disabled_reason}")
+        return False
+    missing_devices = _missing_required_devices(requirement)
+    if missing_devices:
+        missing_str = ", ".join(missing_devices)
+        print(
+            f"[robot_main.launch] Skipping '{component_name}' because the following device(s) are missing: {missing_str}"
+        )
+        return False
+    return True
+
+
+def _requirement_disabled_reason(requirement: Any) -> str | None:
+    if not requirement:
+        return None
+    if isinstance(requirement, dict):
+        disable_env = requirement.get("disable_env")
+        if disable_env and _env_var_truthy(disable_env):
+            return f"environment variable {disable_env} disables this component"
+    return None
+
+
+def _missing_required_devices(requirement: Any) -> List[str]:
+    if not requirement:
+        return []
+    required_paths = _resolve_required_device_entries(requirement)
+    missing = [str(path) for path in required_paths if not path.exists()]
+    return missing
+
+
+def _resolve_required_device_entries(requirement: Any) -> List[Path]:
+    if requirement is None:
+        return []
+    if isinstance(requirement, str):
+        return [Path(os.path.expandvars(os.path.expanduser(requirement)))]
+    if isinstance(requirement, dict):
+        paths: List[str] = []
+        explicit_path = requirement.get("path")
+        if explicit_path:
+            paths.append(str(explicit_path))
+        env_name = requirement.get("env")
+        if env_name:
+            env_value = os.environ.get(env_name)
+            if env_value:
+                paths.append(env_value)
+        default_value = requirement.get("default")
+        if default_value:
+            paths.append(str(default_value))
+        additional = requirement.get("paths")
+        if isinstance(additional, list):
+            paths.extend(str(item) for item in additional if item)
+        resolved: List[Path] = []
+        for value in paths:
+            expanded = os.path.expandvars(os.path.expanduser(value))
+            resolved.append(Path(expanded))
+        return resolved
+    if isinstance(requirement, list):
+        resolved: List[Path] = []
+        for item in requirement:
+            resolved.extend(_resolve_required_device_entries(item))
+        return resolved
+    return []
+
+
+def _env_var_truthy(name: str) -> bool:
+    value = os.environ.get(name)
+    if value is None:
+        return False
+    return value not in ("", "0", "false", "False")
+
 def _component_variant_names(config: Dict[str, Any], base_name: str) -> List[str]:
     components = config.get("components", {})
     suffix = f"{base_name}_"
@@ -704,9 +1034,15 @@ def _component_variant_names(config: Dict[str, Any], base_name: str) -> List[str
 
 
 def _component_enabled(config: Dict[str, Any], name: str) -> bool:
+    components = config.get("components", {})
+    if name not in components:
+        return False
     entry = _component_config(config, name)
-    default_state = _COMPONENT_DEFAULTS.get(name, True)
-    return entry.get("enabled", default_state)
+    if "enabled" not in entry:
+        return _component_requirements_met(name, entry)
+    if not bool(entry.get("enabled")):
+        return False
+    return _component_requirements_met(name, entry)
 
 
 def _load_topics(config_path: str) -> Dict[str, Any]:

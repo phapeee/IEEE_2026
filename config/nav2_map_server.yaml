@@ -4,7 +4,7 @@ map_server:
     use_sim_time: false
 
     # Path to the standard ROS map YAML (the one that points to the PGM/PNG)
-    yaml_filename: /ws/config_HQ/static_map.yaml
+    yaml_filename: /ws/config/static_map.yaml
 
     # TF / topic settings
     frame_id: map           # map frame for the occupancy grid

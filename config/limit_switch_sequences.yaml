@@ -1,0 +1,344 @@
+state_machines:
+  antenna_button_cali:
+    description: "Calibrate xy position before button antenna."
+    steps:
+      - name: left_wall
+        type: move
+        velocity_x: 0.0
+        velocity_y: 0.02
+        success_condition: left_pressed
+        next_successive_state: front_wall
+        timeout_sec: 5.0
+        next_timeout_state: failure_termination
+
+      - name: front_wall
+        type: move
+        velocity_x: 0.02
+        velocity_y: 0.0
+        success_condition: front_pressed
+        next_successive_state: set_pose
+        timeout_sec: 5.0
+        next_timeout_state: failure_termination
+
+      - name: set_pose
+        type: set_pose
+        pose:
+          frame_id: "map"
+          x: 0.1651
+          y: 0.8636
+          yaw_deg: 90.0
+          covariance_diagonal: [0.0001, 0.0001, 0.0001]
+        next_successive_state: success_termination
+        next_failure_state: failure_termination
+
+      - name: failure_termination
+        type: terminate
+        success: false
+        message: "antenna_button_cali failed"
+
+      - name: success_termination
+        type: terminate
+        success: true
+        message: "antenna_button_cali complete"
+
+  antenna_keypad_cali:
+    description: "Calibrate xy position before keypad antenna."
+    steps:
+      - name: front_wall
+        type: move
+        velocity_x: 0.02
+        velocity_y: 0.0
+        success_condition: front_pressed
+        next_successive_state: left_wall
+        timeout_sec: 5.0
+        next_timeout_state: failure_termination
+
+      - name: left_wall
+        type: move
+        velocity_x: 0.0
+        velocity_y: 0.02
+        success_condition: left_pressed
+        next_successive_state: set_pose
+        timeout_sec: 5.0
+        next_timeout_state: failure_termination
+
+      - name: set_pose
+        type: set_pose
+        pose:
+          frame_id: "map"
+          x: 0.809625
+          y: 0.1651
+          yaw_deg: -90.0
+          covariance_diagonal: [0.0001, 0.0001, 0.0001]
+        next_successive_state: success_termination
+        next_failure_state: failure_termination
+
+      - name: failure_termination
+        type: terminate
+        success: false
+        message: "antenna_keypad_cali failed"
+
+      - name: success_termination
+        type: terminate
+        success: true
+        message: "antenna_keypad_cali complete"
+
+  antenna_keypad_cali_2:
+    description: "Calibrate xy position in front of keypad antenna."
+    steps:
+      - name: front_wall
+        type: move
+        velocity_x: 0.02
+        velocity_y: 0.0
+        success_condition: front_pressed
+        next_successive_state: set_pose
+        timeout_sec: 5.0
+        next_timeout_state: failure_termination
+
+      - name: set_pose
+        type: set_pose
+        pose:
+          frame_id: "map"
+          x: 1.0
+          y: 0.3556
+          yaw_deg: -90.0
+          covariance_diagonal: [0.0001, 0.0001, 0.0001]
+        next_successive_state: success_termination
+        next_failure_state: failure_termination
+
+      - name: failure_termination
+        type: terminate
+        success: false
+        message: "antenna_keypad_cali_2 failed"
+
+      - name: success_termination
+        type: terminate
+        success: true
+        message: "antenna_keypad_cali_2 complete"
+
+  north_wall_cali:
+    description: "Calibrate robot's yaw facing north wall."
+    steps:
+      - name: touch_right_wall
+        type: move
+        velocity_x: 0.0
+        velocity_y: -0.02
+        success_condition: right_pressed
+        next_successive_state: leave_right_wall
+        timeout_sec: 5.0
+        next_timeout_state: failure_termination
+
+      - name: leave_right_wall
+        type: move
+        velocity_x: 0.0
+        velocity_y: 0.01
+        success_condition: right_released
+        next_successive_state: set_yaw
+        timeout_sec: 5.0
+        next_timeout_state: failure_termination
+
+      - name: set_yaw
+        type: set_pose
+        pose:
+          frame_id: "map"
+          x: 1.15
+          y: 1.0541
+          yaw_deg: -180.0
+          covariance_diagonal: [0.0001, 0.0001, 0.0001]
+        next_successive_state: success_termination
+        next_failure_state: failure_termination
+
+      - name: failure_termination
+        type: terminate
+        success: false
+        message: "north_wall_cali failed"
+
+      - name: success_termination
+        type: terminate
+        success: true
+        message: "north_wall_cali complete"
+
+  antenna_rotary_cali:
+    description: "Calibrate xy position before keypad antenna."
+    steps:
+      - name: front_wall
+        type: move
+        velocity_x: 0.02
+        velocity_y: 0.0
+        success_condition: front_pressed
+        next_successive_state: right_wall
+        timeout_sec: 5.0
+        next_timeout_state: failure_termination
+
+      - name: right_wall
+        type: move
+        velocity_x: 0.0
+        velocity_y: -0.02
+        success_condition: right_pressed
+        next_successive_state: set_pose
+        timeout_sec: 9.0
+        next_timeout_state: failure_termination
+
+      - name: set_pose
+        type: set_pose
+        pose:
+          frame_id: "map"
+          x: 2.0955
+          y: 1.0795
+          yaw_deg: 90.0
+          covariance_diagonal: [0.0001, 0.0001, 0.0001]
+        next_successive_state: success_termination
+        next_failure_state: failure_termination
+
+      - name: failure_termination
+        type: terminate
+        success: false
+        message: "antenna_rotary_cali failed"
+
+      - name: success_termination
+        type: terminate
+        success: true
+        message: "antenna_rotary_cali complete"
+
+  crater_lap:
+    description: "Calibrate xy position before keypad antenna."
+    steps:
+      - name: make_lap
+        type: move
+        velocity_x: -0.1
+        velocity_y: 0.3
+        success_condition: back_pressed
+        next_successive_state: success_termination
+        timeout_sec: 30.0
+        next_timeout_state: success_termination
+
+      - name: success_termination
+        type: terminate
+        success: true
+        message: "crater_lap complete"
+
+  south_wall_cali:
+    description: "Calibrate robot's yaw facing north wall."
+    steps:
+      - name: touch_front_wall
+        type: move
+        velocity_x: 0.02
+        velocity_y: 0.0
+        success_condition: front_pressed
+        next_successive_state: leave_front_wall
+        timeout_sec: 5.0
+        next_timeout_state: failure_termination
+
+      - name: leave_front_wall
+        type: move
+        velocity_x: -0.02
+        velocity_y: 0.0
+        success_condition: front_released
+        next_successive_state: set_pose
+        timeout_sec: 5.0
+        next_timeout_state: failure_termination
+
+      - name: set_pose
+        type: set_pose
+        pose:
+          frame_id: "map"
+          x: 0.35
+          y: 0.1651
+          yaw_deg: -90.0
+          covariance_diagonal: [0.0001, 0.0001, 0.0001]
+        next_successive_state: success_termination
+        next_failure_state: failure_termination
+
+      - name: failure_termination
+        type: terminate
+        success: false
+        message: "north_wall_cali failed"
+
+      - name: success_termination
+        type: terminate
+        success: true
+        message: "north_wall_cali complete"
+
+  south_wall_cali_2:
+    description: "Calibrate robot's yaw facing north wall."
+    steps:
+      - name: touch_left_wall
+        type: move
+        velocity_x: 0.0
+        velocity_y: 0.02
+        success_condition: left_pressed
+        next_successive_state: leave_left_wall
+        timeout_sec: 5.0
+        next_timeout_state: failure_termination
+
+      - name: leave_left_wall
+        type: move
+        velocity_x: 0.0
+        velocity_y: -0.02
+        success_condition: left_released
+        next_successive_state: set_pose
+        timeout_sec: 5.0
+        next_timeout_state: failure_termination
+
+      - name: set_pose
+        type: set_pose
+        pose:
+          frame_id: "map"
+          x: 1.35
+          y: 0.1651
+          yaw_deg: -90.0
+          covariance_diagonal: [0.0001, 0.0001, 0.0001]
+        next_successive_state: success_termination
+        next_failure_state: failure_termination
+
+      - name: failure_termination
+        type: terminate
+        success: false
+        message: "north_wall_cali_2 failed"
+
+      - name: success_termination
+        type: terminate
+        success: true
+        message: "north_wall_cali_2 complete"
+
+  north_wall_cali_2:
+    description: "Calibrate robot's yaw facing north wall."
+    steps:
+      - name: touch_left_wall
+        type: move
+        velocity_x: 0.0
+        velocity_y: 0.02
+        success_condition: left_pressed
+        next_successive_state: leave_left_wall
+        timeout_sec: 5.0
+        next_timeout_state: failure_termination
+
+      - name: leave_left_wall
+        type: move
+        velocity_x: 0.0
+        velocity_y: -0.02
+        success_condition: left_released
+        next_successive_state: set_yaw
+        timeout_sec: 5.0
+        next_timeout_state: failure_termination
+
+      - name: set_yaw
+        type: set_pose
+        pose:
+          frame_id: "map"
+          x: 1.95
+          y: 1.0541
+          yaw_deg: -180.0
+          covariance_diagonal: [0.0001, 0.0001, 0.0001]
+        next_successive_state: success_termination
+        next_failure_state: failure_termination
+
+      - name: failure_termination
+        type: terminate
+        success: false
+        message: "north_wall_cali failed"
+
+      - name: success_termination
+        type: terminate
+        success: true
+        message: "north_wall_cali complete"

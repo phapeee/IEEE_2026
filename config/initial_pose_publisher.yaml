@@ -1,0 +1,10 @@
+initial_pose_publisher:
+  x: 0.1778
+  y: 0.1778
+  yaw: 1.5707963268
+  frame_id: map
+  topic: initialpose
+  delay_sec: 0.0
+  tf_publish: true
+  tf_parent_frame: map
+  tf_child_frame: odom

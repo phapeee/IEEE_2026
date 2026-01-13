@@ -1,7 +1,8 @@
 imu_calibration_node:
   ros__parameters:
-    input_topic: imu_data
+    input_topic: data_raw
     output_topic: imu
     queue_size: 50
-    calibration_samples: 200
+    calibration_samples: 100
     calibration_timeout_sec: 10.0
+    trigger_service: /trigger_imu_calibration

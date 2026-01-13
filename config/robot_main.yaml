@@ -8,17 +8,20 @@ components:
       frame_id: "base_link"
       
   controller_manager:
-    enabled: false
+    enabled: true
+    requires_device:
+      env: OPENCR_SERIAL_PORT
+      default: /dev/ttyACM0
+      disable_env: OPENCR_DISABLE_ROS2_CONTROL
     params_file:
       - "/ws/config/ros2_controllers.yaml"
 
-  joint_state_broadcaster_spawner:
-    enabled: false
-    controller_name: joint_state_broadcaster
-    controller_manager: /controller_manager
-
   mecanum_controller_spawner:
-    enabled: false
+    enabled: true
+    requires_device:
+      env: OPENCR_SERIAL_PORT
+      default: /dev/ttyACM0
+      disable_env: OPENCR_DISABLE_ROS2_CONTROL
     controller_name: mecanum_controller
     controller_manager: /controller_manager
 
@@ -26,36 +29,65 @@ components:
     enabled: true
     parameters:
       publish_robot_description: true
-      robot_description: "$(xacro /ws/config/rocker.urdf)"
+      robot_description: "$(xacro /ws/config/mini.urdf)"
 
   robot_localization:
-    enabled: false
+    enabled: true
     params_file: "/ws/config/robot_localization.yaml"
 
   initial_pose_publisher:
-    enabled: false
-    x: 0.1524
-    y: 0.1524
-    yaw: 1.5707963268
-    frame_id: map
-    topic: initialpose
-    delay_sec: 0.0
-    tf_publish: false
-    tf_parent_frame: map
-    tf_child_frame: base_link
-
-  nav2_lifecycle_manager:
-    enabled: false
-    params_file: "/ws/config/lifecycle_localization.yaml"
+    enabled: true
+    params_file: "/ws/config/initial_pose_publisher.yaml"
 
   imu_calibration:
-    enabled: false
+    enabled: true
     params_file: "/ws/config/imu_calibration.yaml"
+
+  wit_imu_driver:
+    enabled: true
+    params_file: "/ws/config/wit_imu_driver.yaml"
+
+  nav2_lifecycle_manager:
+    enabled: true
+    params_file: "/ws/config/lifecycle_localization.yaml"
 
   nav2_map_server:
     enabled: true
     params_file: "/ws/config/nav2_map_server.yaml"
 
+  nav2_stack:
+    enabled: false
+    params_file: "/ws/config/nav2_params.yaml"
+
   nav2_lifecycle_manager:
-    enabled: true
+    enabled: false
     params_file: "/ws/config/lifecycle_localization.yaml"
+
+  nav2_lifecycle_manager_navigation:
+    enabled: false
+    name: lifecycle_manager
+    params_file: "/ws/config/nav2_params.yaml"
+
+  holonomic_pi_controller:
+    enabled: true
+    name: holonomic_pi_controller
+    params_file: "/ws/config/holonomic_pi_controller.yaml"
+
+  gpio_button_event:
+    enabled: true
+    name: gpio_button_event
+    params_file: "/ws/config/gpio_button_event.yaml"
+
+  limit_switch_calibration:
+    enabled: true
+    package: limit_switch_calibration
+    executable: calibration_node
+    name: limit_switch_calibration
+    params_file: "/ws/config/limit_switch_calibration.yaml"
+
+  waypoint_state_machine:
+    enabled: true
+    package: smacc_button_nav
+    executable: button_waypoint_sm
+    name: waypoint_state_machine
+    params_file: "/ws/config/waypoint_state_machine.yaml"
