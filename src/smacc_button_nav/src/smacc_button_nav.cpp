@@ -470,7 +470,8 @@ void StIdle::onEntry()
   RCLCPP_INFO(this->getLogger(), "State: Idle -> waiting for button press");
   this->context<SmButtonNav>().resetMission();
   CpWaypointNavigator * navigator = nullptr;
-  this->requiresComponent(navigator);
+  this->context<SmButtonNav>().requiresComponent(
+    navigator, smacc2::ComponentRequirement::SOFT);
   if (navigator != nullptr) {
     navigator->cancelGoal();
   }
@@ -495,7 +496,8 @@ void StNavigateWaypoint::onEntry()
   }
 
   CpWaypointNavigator * navigator = nullptr;
-  this->requiresComponent(navigator);
+  this->context<SmButtonNav>().requiresComponent(
+    navigator, smacc2::ComponentRequirement::SOFT);
   if (navigator == nullptr) {
     RCLCPP_ERROR(this->getLogger(), "Waypoint navigator component not available");
     this->postEvent<EvNavigationFailed>();
@@ -815,10 +817,7 @@ bool StReset::restartController(const SmButtonNav & sm)
         std::make_shared<controller_manager_msgs::srv::SwitchController::Request>();
       request->activate_controllers = activate;
       request->deactivate_controllers = deactivate;
-      request->start_controllers.clear();
-      request->stop_controllers.clear();
       request->strictness = controller_manager_msgs::srv::SwitchController::Request::STRICT;
-      request->start_asap = false;
       request->activate_asap = false;
       request->timeout.sec = 0;
       request->timeout.nanosec = 0;

@@ -27,9 +27,6 @@ target_compile_options(gpio_button_event_node PRIVATE -Wall -Wextra -Wpedantic)
 install(TARGETS gpio_button_event_node
   DESTINATION lib/${PROJECT_NAME})
 
-install(DIRECTORY launch
-  DESTINATION share/${PROJECT_NAME})
-
 install(FILES package.xml README.md
   DESTINATION share/${PROJECT_NAME})
 

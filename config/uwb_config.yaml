@@ -1,0 +1,56 @@
+input_topic: /bot_keypad/uwb_data
+frame_id: bot_keypad/odom
+offset_x: -0.05917
+offset_y: -0.08995
+anchors:
+  - id: 84418844
+    position:
+      - 0.0
+      - 0.0
+  - id: 218522628
+    position:
+      - 1.0
+      - 0.0
+sign_constraints:
+  sign_x: 1
+  sign_y: 1
+covariance_estimator:
+  input_topic: /bot_keypad/uwb_pose
+  sample_count: 10000
+  export_data: true
+pose_covariance:
+  - 0.00052626850057244253
+  - 4.9483898259815569e-05
+  - 0
+  - 0
+  - 0
+  - 4.9483898259815569e-05
+  - 0.00043496415764923642
+  - 0
+  - 0
+  - 0
+  - 0
+  - 0
+  - 0
+  - 0
+  - 0
+  - 0
+  - 0
+  - 0
+  - 0
+  - 0
+  - 0
+  - 0
+  - 0
+  - 0
+  - 0
+  - 0
+  - 0
+  - 0
+  - 0
+  - 0
+  - 0
+  - 0
+  - 0
+  - 0
+  - 0

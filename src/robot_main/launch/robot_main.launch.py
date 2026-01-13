@@ -12,6 +12,8 @@ from launch.substitutions import Command, FindExecutable, LaunchConfiguration
 from launch_ros.actions import Node
 from launch_ros.parameter_descriptions import ParameterValue
 
+_CONFIG_BASE_DIR: Path | None = None
+
 
 def generate_launch_description() -> LaunchDescription:
     default_config_path = _discover_default_config("robot_main.yaml")
@@ -47,7 +49,11 @@ def generate_launch_description() -> LaunchDescription:
 
 
 def _launch_components(context, *_: Any) -> List[Node]:
+    global _CONFIG_BASE_DIR
     config_path = Path(context.perform_substitution(LaunchConfiguration("robot_main_config")))
+    if not config_path.is_absolute():
+        config_path = Path.cwd() / config_path
+    _CONFIG_BASE_DIR = config_path.parent
     mecanum_config_path = context.perform_substitution(LaunchConfiguration("mecanum_controller_config"))
     robot_description_file = context.perform_substitution(LaunchConfiguration("robot_description_file"))
 
@@ -372,9 +378,12 @@ def _create_pointcloud_to_laserscan_nodes(config: Dict[str, Any], global_namespa
 def _controller_manager_param_sources(controller_cfg: Dict[str, Any], default_config: str) -> List[str]:
     params_entry = controller_cfg.get("params_file")
     if isinstance(params_entry, list):
-        return params_entry or [default_config]
+        resolved_entries = [_resolve_config_path(item) for item in params_entry if item]
+        resolved_entries = [item for item in resolved_entries if item]
+        return resolved_entries or [default_config]
     if isinstance(params_entry, str) and params_entry.strip():
-        return [params_entry]
+        resolved = _resolve_config_path(params_entry)
+        return [resolved] if resolved else [default_config]
     return [default_config]
 
 
@@ -814,7 +823,9 @@ def _create_uwb_triangulaion_nodes(config: Dict[str, Any], global_namespace: str
 
     base_parameters: Dict[str, Any] = {}
     if params_file:
-        base_parameters["config_file"] = params_file
+        resolved_params_file = _resolve_config_path(params_file)
+        if resolved_params_file:
+            base_parameters["config_file"] = resolved_params_file
 
     parameter_entries: List[Any] = []
     if base_parameters:
@@ -909,9 +920,11 @@ def _build_robot_description_parameter(override: Any, default_value: ParameterVa
         return {"robot_description": default_value}
     command_path = _extract_xacro_target(override) if isinstance(override, str) else None
     if command_path:
+        resolved_path = _resolve_config_path(command_path)
+        xacro_path = resolved_path or command_path
         return {
             "robot_description": ParameterValue(
-                Command([FindExecutable(name="xacro"), " ", command_path]),
+                Command([FindExecutable(name="xacro"), " ", xacro_path]),
                 value_type=str,
             )
         }
@@ -1046,7 +1059,10 @@ def _component_enabled(config: Dict[str, Any], name: str) -> bool:
 
 
 def _load_topics(config_path: str) -> Dict[str, Any]:
-    path = Path(config_path)
+    resolved_path = _resolve_config_path(config_path)
+    if not resolved_path:
+        return {}
+    path = Path(resolved_path)
     if not path.exists():
         return {}
     with open(path, "r", encoding="utf-8") as config_file:
@@ -1065,8 +1081,21 @@ def _load_yaml_file(path: Path) -> Dict[str, Any]:
     return data if isinstance(data, dict) else {}
 
 
+def _resolve_config_path(path_str: str | None) -> str | None:
+    if not path_str:
+        return None
+    expanded = os.path.expandvars(os.path.expanduser(path_str))
+    path = Path(expanded)
+    if path.is_absolute() or _CONFIG_BASE_DIR is None:
+        return str(path)
+    return str(_CONFIG_BASE_DIR / path)
+
+
 def _load_parameters_from_file(path_str: str, node_name: str) -> Dict[str, Any]:
-    path = Path(path_str)
+    resolved_path = _resolve_config_path(path_str)
+    if not resolved_path:
+        return {}
+    path = Path(resolved_path)
     data = _load_yaml_file(path)
     if not data:
         return {}

@@ -1,34 +1,44 @@
 <?xml version="1.0"?>
 <robot xmlns:xacro="http://www.ros.org/wiki/xacro">
-<xacro:macro name="mini_ros2_control" params="robot_namespace:='' opencr_serial_port:='/dev/ttyACM0' opencr_baud_rate:='115200'">
+  <xacro:macro name="mini_ros2_control" params="robot_namespace:=''">
     <xacro:property name="topic_prefix" value="${'/' + robot_namespace if robot_namespace else ''}"/>
     <ros2_control name="mini_system" type="system">
       <hardware>
-        <plugin>opencr_hardware/OpenCRSystem</plugin>
-        <param name="serial_port">${opencr_serial_port}</param>
-        <param name="baud_rate">${opencr_baud_rate}</param>
-        <param name="status_timeout_sec">0.5</param>
-        <param name="max_read_iterations">32</param>
+        <plugin>isaac_topic_hardware/IsaacTopicHardware</plugin>
+
+        <param name="state_topic">${topic_prefix}/joint_states_wheel</param>
+        <param name="command_topic">${topic_prefix}/joint_command_wheel</param>
+        <param name="state_qos_depth">50</param>
+        <param name="command_qos_depth">10</param>
+        <param name="state_timeout">0.5</param>
+        <param name="command_publish_period">0.02</param>
+
+        <param name="parameter_namespace">isaac_topic_hardware</param>
+        <param name="controller_manager_name">controller_manager</param>
       </hardware>
       <joint name="Front_Left_Wheel">
         <command_interface name="velocity"/>
         <state_interface name="position"/>
         <state_interface name="velocity"/>
+        <param name="hardware_joint_name">TT_Motor_v12_0_Front_Left_Wheel</param>
       </joint>
       <joint name="Front_Right_Wheel">
         <command_interface name="velocity"/>
         <state_interface name="position"/>
         <state_interface name="velocity"/>
+        <param name="hardware_joint_name">TT_Motor_v12_3_Front_Right_Wheel</param>
       </joint>
       <joint name="Rear_Left_Wheel">
         <command_interface name="velocity"/>
         <state_interface name="position"/>
         <state_interface name="velocity"/>
+        <param name="hardware_joint_name">TT_Motor_v12_2_Rear_Left_Wheel</param>
       </joint>
       <joint name="Rear_Right_Wheel">
         <command_interface name="velocity"/>
         <state_interface name="position"/>
         <state_interface name="velocity"/>
+        <param name="hardware_joint_name">TT_Motor_v12_1_Rear_Right_Wheel</param>
       </joint>
     </ros2_control>
   </xacro:macro>

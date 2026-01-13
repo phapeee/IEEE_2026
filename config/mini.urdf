@@ -1,19 +1,37 @@
 <?xml version="1.0"?>
 <robot name="Mini" xmlns:xacro="http://www.ros.org/wiki/xacro">
 
-  <xacro:arg name="robot_namespace" default=""/>
+  <xacro:arg name="robot_namespace" default="bot_keypad"/>
   <xacro:property name="robot_ns" value="$(arg robot_namespace)"/>
   <xacro:property name="ns_prefix" value="${robot_ns + '/' if robot_ns else ''}"/>
 
   <xacro:include filename="mini_ros2_control.urdf"/>
 
   <!-- Links used in the kinematic tree -->
+  <link name="${ns_prefix}left_cam"/>
   <link name="${ns_prefix}base_link"/>
+  <link name="${ns_prefix}right_cam"/>
   <link name="${ns_prefix}rear_right_wheel_link"/>
   <link name="${ns_prefix}rear_left_wheel_link"/>
   <link name="${ns_prefix}front_left_wheel_link"/>
   <link name="${ns_prefix}front_right_wheel_link"/>
-  <link name="${ns_prefix}imu_link"/>
+  <link name="${ns_prefix}uwb"/>
+  <link name="${ns_prefix}imu"/>
+
+  <!-- base_link -> cameras (rotated +90 deg about base_link z) -->
+  <joint name="Left_Cam" type="fixed">
+    <origin xyz="0.066324 0.039709 0.027"
+            rpy="1.5707963267948968 0.0 1.134464013796174"/>
+    <parent link="${ns_prefix}base_link"/>
+    <child link="${ns_prefix}left_cam"/>
+  </joint>
+
+  <joint name="Right_Cam" type="fixed">
+    <origin xyz="0.066324 -0.0397 0.027"
+            rpy="-1.5707963267948966 0.0 -1.1344640137961166"/>
+    <parent link="${ns_prefix}base_link"/>
+    <child link="${ns_prefix}right_cam"/>
+  </joint>
 
   <!-- base_link -> wheel stacks (rotated +90 deg about base_link z) -->
   <joint name="Rear_Right_Wheel" type="continuous">
@@ -48,11 +66,19 @@
     <axis xyz="-1.0 0.0 0.0"/>
   </joint>
 
+  <!-- base_link -> UWB & IMU (rotated +90 deg about base_link z) -->
+  <joint name="base_link_UWB" type="fixed">
+    <origin xyz="0.0 0.0 0.0" rpy="0.0 0.0 0.0" />
+    <parent link="${ns_prefix}base_link" />
+    <child link="${ns_prefix}uwb" />
+  </joint>
+
   <joint name="base_link_IMU" type="fixed">
     <origin xyz="0.0 0.0 0.0" rpy="0.0 0.0 0.0" />
     <parent link="${ns_prefix}base_link" />
-    <child link="${ns_prefix}imu_link" />
+    <child link="${ns_prefix}imu" />
   </joint>
+
   
   <xacro:mini_ros2_control robot_namespace="${robot_ns}"/>
 </robot>
