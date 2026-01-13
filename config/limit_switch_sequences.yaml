@@ -200,23 +200,6 @@ state_machines:
         success: true
         message: "antenna_rotary_cali complete"
 
-  crater_lap:
-    description: "Calibrate xy position before keypad antenna."
-    steps:
-      - name: make_lap
-        type: move
-        velocity_x: -0.1
-        velocity_y: 0.3
-        success_condition: back_pressed
-        next_successive_state: success_termination
-        timeout_sec: 30.0
-        next_timeout_state: success_termination
-
-      - name: success_termination
-        type: terminate
-        success: true
-        message: "crater_lap complete"
-
   south_wall_cali:
     description: "Calibrate robot's yaw facing north wall."
     steps:

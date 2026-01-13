@@ -13,6 +13,7 @@
 #include <controller_manager_msgs/srv/configure_controller.hpp>
 #include <geometry_msgs/msg/pose_stamped.hpp>
 #include <geometry_msgs/msg/pose_with_covariance_stamped.hpp>
+#include <limit_switch_calibration_msgs/action/limit_switch_calibration.hpp>
 #include <nav2_msgs/action/navigate_to_pose.hpp>
 #include <rclcpp/rclcpp.hpp>
 #include <rclcpp_action/rclcpp_action.hpp>
@@ -31,7 +32,8 @@ enum class TaskType
   NONE,
   WAIT,
   SERVICE_CALL,
-  EXTERNAL_STATE_MACHINE
+  EXTERNAL_STATE_MACHINE,
+  LIMIT_SWITCH_CALIBRATION
 };
 
 struct TaskDefinition
@@ -56,6 +58,15 @@ struct TaskDefinition
   std::string success_event_type;
   std::string failure_event_type;
   double result_timeout_sec{0.0};
+
+  // For limit_switch_calibration action
+  std::string action_name;
+  std::vector<std::string> directions;
+  std::string pose_frame_id;
+  double pose_x{0.0};
+  double pose_y{0.0};
+  double pose_yaw_deg{0.0};
+  double action_timeout_sec{0.0};
 };
 
 struct WaypointTaskSpec
@@ -291,7 +302,15 @@ private:
   std::string ext_success_event_type_;
   std::string ext_failure_event_type_;
 
+  rclcpp_action::Client<limit_switch_calibration_msgs::action::LimitSwitchCalibration>::SharedPtr
+    calibration_action_client_;
+  rclcpp_action::ClientGoalHandle<limit_switch_calibration_msgs::action::LimitSwitchCalibration>::SharedPtr
+    calibration_goal_handle_;
+  rclcpp::TimerBase::SharedPtr calibration_timeout_timer_;
+  bool calibration_waiting_{false};
+
   void completeExternalTask(bool success);
+  void completeCalibrationTask(bool success);
 };
 
 struct StReset : smacc2::SmaccState<StReset, SmButtonNav>

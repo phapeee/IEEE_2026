@@ -10,6 +10,7 @@
 
   <depend>geometry_msgs</depend>
   <depend>controller_manager_msgs</depend>
+  <depend>limit_switch_calibration_msgs</depend>
   <depend>nav2_msgs</depend>
   <depend>rclcpp</depend>
   <depend>rclcpp_action</depend>

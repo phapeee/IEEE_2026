@@ -10,6 +10,7 @@ find_package(controller_manager_msgs REQUIRED)
 find_package(rclcpp REQUIRED)
 find_package(rclcpp_action REQUIRED)
 find_package(geometry_msgs REQUIRED)
+find_package(limit_switch_calibration_msgs REQUIRED)
 find_package(nav2_msgs REQUIRED)
 find_package(robot_localization REQUIRED)
 find_package(std_msgs REQUIRED)
@@ -27,6 +28,7 @@ ament_target_dependencies(
   button_waypoint_sm
   controller_manager_msgs
   geometry_msgs
+  limit_switch_calibration_msgs
   nav2_msgs
   rclcpp
   rclcpp_action

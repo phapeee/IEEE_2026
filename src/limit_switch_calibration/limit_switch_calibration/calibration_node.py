@@ -2,10 +2,11 @@ import math
 import threading
 import time
 from pathlib import Path
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, List, Optional, Tuple
 
 import rclpy
 from geometry_msgs.msg import TwistStamped
+from rclpy.action import ActionServer, CancelResponse, GoalResponse
 from rclpy.callback_groups import ReentrantCallbackGroup
 from rclpy.executors import ExternalShutdownException
 from rclpy.node import Node
@@ -14,6 +15,7 @@ from robot_localization.srv import SetPose
 from smacc2_msgs.msg import SmaccEvent
 from std_msgs.msg import Bool, String
 import yaml
+from limit_switch_calibration_msgs.action import LimitSwitchCalibration
 
 
 class StateMachineError(Exception):
@@ -46,6 +48,17 @@ class LimitSwitchCalibrationNode(Node):
         self.set_pose_service_name = self.declare_parameter("set_pose_service", "/set_pose").value
         self.move_publish_rate_hz = float(self.declare_parameter("move_publish_rate_hz", 20.0).value)
         self.default_timeout_sec = float(self.declare_parameter("default_timeout_sec", 10.0).value)
+        self.action_name = self.declare_parameter("action_name", "limit_switch_calibration").value
+        self.linear_x_speed = float(self.declare_parameter("linear_x_speed", 0.02).value)
+        self.linear_y_speed = float(self.declare_parameter("linear_y_speed", 0.02).value)
+        self.direction_timeout_sec = float(
+            self.declare_parameter("direction_timeout_sec", self.default_timeout_sec).value
+        )
+        self.pose_covariance_diagonal = list(
+            self.declare_parameter("pose_covariance_diagonal", [0.01, 0.01, 0.01]).value
+        )
+        self.default_pose_frame_id = self.declare_parameter("default_pose_frame_id", "map").value
+        self.max_directions = 2
 
         self.state_machine_file = str(self.declare_parameter("state_machine_file", "").value)
         self.switch_topics: Dict[str, str] = {
@@ -78,12 +91,32 @@ class LimitSwitchCalibrationNode(Node):
 
         self._set_pose_client = self.create_client(SetPose, self.set_pose_service_name, callback_group=self._callback_group)
 
+        if len(self.pose_covariance_diagonal) != 3:
+            self.get_logger().warn(
+                "pose_covariance_diagonal must have 3 values; using default [0.01, 0.01, 0.01]"
+            )
+            self.pose_covariance_diagonal = [0.01, 0.01, 0.01]
+
+        self._action_lock = threading.Lock()
+        self._active_goal_handle: Optional[Any] = None
+        self._active_stop_event: Optional[threading.Event] = None
+        self._action_server = ActionServer(
+            self,
+            LimitSwitchCalibration,
+            self.action_name,
+            execute_callback=self._execute_calibration_goal,
+            goal_callback=self._calibration_goal_callback,
+            cancel_callback=self._calibration_cancel_callback,
+            handle_accepted_callback=self._calibration_handle_accepted,
+            callback_group=self._callback_group,
+        )
+
         self._worker_thread: Optional[threading.Thread] = None
         self._cancel_event = threading.Event()
         self._active_machine_id: Optional[str] = None
         self.get_logger().info(
             f"limit_switch_calibration node ready: start topic={self.start_topic} "
-            f"status topic={self.status_topic} cmd_vel={self.cmd_vel_topic}"
+            f"status topic={self.status_topic} cmd_vel={self.cmd_vel_topic} action={self.action_name}"
         )
 
     def _normalize_state_machines(self, raw_param: Any) -> Dict[str, Dict[str, Any]]:
@@ -141,6 +174,12 @@ class LimitSwitchCalibrationNode(Node):
         if not machine_id:
             self.get_logger().warn("Received empty state machine id")
             return
+        with self._action_lock:
+            if self._active_goal_handle and self._active_goal_handle.is_active:
+                self.get_logger().warn(
+                    "Ignoring start request because a calibration action is active"
+                )
+                return
         if machine_id not in self.state_machines:
             self.get_logger().error(f"Unknown state machine id '{machine_id}'")
             return
@@ -158,6 +197,185 @@ class LimitSwitchCalibrationNode(Node):
             daemon=True,
         )
         self._worker_thread.start()
+
+    def _normalize_directions(self, raw_directions: List[str]) -> List[str]:
+        return [str(item).strip().lower() for item in raw_directions if str(item).strip()]
+
+    def _direction_to_velocity(self, direction: str) -> Tuple[float, float]:
+        if direction == "front":
+            return (self.linear_x_speed, 0.0)
+        if direction == "back":
+            return (-self.linear_x_speed, 0.0)
+        if direction == "left":
+            return (0.0, self.linear_y_speed)
+        if direction == "right":
+            return (0.0, -self.linear_y_speed)
+        raise StateMachineError(f"Unsupported direction '{direction}'")
+
+    def _calibration_goal_callback(self, goal_request: LimitSwitchCalibration.Goal) -> GoalResponse:
+        directions = self._normalize_directions(goal_request.directions)
+        if not directions:
+            self.get_logger().warn("Rejecting calibration goal with no directions")
+            return GoalResponse.REJECT
+        if len(directions) > self.max_directions:
+            self.get_logger().warn(
+                f"Rejecting calibration goal with {len(directions)} directions "
+                f"(max {self.max_directions})"
+            )
+            return GoalResponse.REJECT
+        invalid = [direction for direction in directions if direction not in {"front", "back", "left", "right"}]
+        if invalid:
+            self.get_logger().warn(f"Rejecting calibration goal with invalid directions: {invalid}")
+            return GoalResponse.REJECT
+        if self._worker_thread and self._worker_thread.is_alive():
+            self.get_logger().warn("Rejecting calibration goal because a state machine is running")
+            return GoalResponse.REJECT
+        return GoalResponse.ACCEPT
+
+    def _calibration_cancel_callback(self, goal_handle) -> CancelResponse:
+        self.get_logger().info("Cancel requested for calibration action")
+        with self._action_lock:
+            if self._active_goal_handle == goal_handle and self._active_stop_event:
+                self._active_stop_event.set()
+        return CancelResponse.ACCEPT
+
+    def _calibration_handle_accepted(self, goal_handle) -> None:
+        new_stop_event = threading.Event()
+        with self._action_lock:
+            if self._active_goal_handle and self._active_goal_handle.is_active:
+                self.get_logger().warn("Preempting active calibration action")
+                if self._active_stop_event:
+                    self._active_stop_event.set()
+            self._active_goal_handle = goal_handle
+            self._active_stop_event = new_stop_event
+        goal_handle.execute()
+
+    def _finish_action(self, goal_handle) -> None:
+        with self._action_lock:
+            if self._active_goal_handle == goal_handle:
+                self._active_goal_handle = None
+                self._active_stop_event = None
+
+    def _action_cancelled(self, goal_handle, stop_event: threading.Event) -> bool:
+        return stop_event.is_set() or goal_handle.is_cancel_requested
+
+    def _execute_calibration_goal(self, goal_handle) -> LimitSwitchCalibration.Result:
+        request = goal_handle.request
+        directions = self._normalize_directions(request.directions)
+        result = LimitSwitchCalibration.Result()
+
+        if not directions:
+            result.success = False
+            result.message = "No directions provided"
+            result.failed_direction = ""
+            goal_handle.abort()
+            return result
+
+        with self._action_lock:
+            stop_event = self._active_stop_event or threading.Event()
+
+        timeout_sec = (
+            self.direction_timeout_sec
+            if self.direction_timeout_sec > 0.0
+            else self.default_timeout_sec
+        )
+        if timeout_sec <= 0.0:
+            self.get_logger().warn("direction_timeout_sec is <= 0; moves will not time out")
+        frame_id = request.frame_id.strip() or self.default_pose_frame_id
+
+        try:
+            for index, direction in enumerate(directions, start=1):
+                if self._action_cancelled(goal_handle, stop_event):
+                    result.success = False
+                    result.message = "Calibration canceled"
+                    result.failed_direction = direction
+                    goal_handle.canceled()
+                    return result
+
+                self._publish_status(
+                    f"Calibration step {index}/{len(directions)}: moving {direction}"
+                )
+                feedback = LimitSwitchCalibration.Feedback()
+                feedback.current_direction = direction
+                feedback.status = "moving"
+                goal_handle.publish_feedback(feedback)
+
+                vx, vy = self._direction_to_velocity(direction)
+                step = {
+                    "velocity_x": vx,
+                    "velocity_y": vy,
+                    "success_condition": f"{direction}_pressed",
+                    "timeout_sec": timeout_sec,
+                }
+
+                try:
+                    move_result = self._execute_move_step_with_condition(step, stop_event)
+                except StateMachineError as exc:
+                    if self._action_cancelled(goal_handle, stop_event):
+                        result.success = False
+                        result.message = "Calibration canceled"
+                        result.failed_direction = direction
+                        goal_handle.canceled()
+                    else:
+                        result.success = False
+                        result.message = f"Calibration failed during '{direction}': {exc}"
+                        result.failed_direction = direction
+                        goal_handle.abort()
+                        self._emit_smacc_event(self.failure_event_type, f"{direction}:error")
+                        self._publish_status(f"Calibration failed during '{direction}': {exc}")
+                    return result
+
+                if move_result == "timeout":
+                    result.success = False
+                    result.message = f"Calibration timed out on '{direction}'"
+                    result.failed_direction = direction
+                    goal_handle.abort()
+                    self._emit_smacc_event(self.failure_event_type, f"{direction}:timeout")
+                    self._publish_status(result.message)
+                    return result
+
+            feedback = LimitSwitchCalibration.Feedback()
+            feedback.current_direction = directions[-1] if directions else ""
+            feedback.status = "setting_pose"
+            goal_handle.publish_feedback(feedback)
+            self._publish_status("Calibration sequence complete, setting pose")
+
+            pose_step = {
+                "pose": {
+                    "frame_id": frame_id,
+                    "x": request.x,
+                    "y": request.y,
+                    "yaw_deg": request.yaw_deg,
+                    "covariance_diagonal": self.pose_covariance_diagonal,
+                }
+            }
+            try:
+                self._execute_set_pose_action(pose_step, stop_event)
+            except StateMachineError as exc:
+                if self._action_cancelled(goal_handle, stop_event):
+                    result.success = False
+                    result.message = "Calibration canceled"
+                    result.failed_direction = ""
+                    goal_handle.canceled()
+                else:
+                    result.success = False
+                    result.message = f"Failed to set pose: {exc}"
+                    result.failed_direction = ""
+                    goal_handle.abort()
+                    self._emit_smacc_event(self.failure_event_type, "set_pose:error")
+                    self._publish_status(result.message)
+                return result
+
+            result.success = True
+            result.message = "Calibration complete"
+            result.failed_direction = ""
+            goal_handle.succeed()
+            self._emit_smacc_event(self.success_event_type, "calibration_complete")
+            self._publish_status("Calibration finished successfully")
+            return result
+        finally:
+            self._send_zero_twist()
+            self._finish_action(goal_handle)
 
     def _publish_status(self, text: str) -> None:
         msg = String()
@@ -493,7 +711,7 @@ class LimitSwitchCalibrationNode(Node):
             yaw = math.radians(yaw_deg)
         else:
             yaw = float(yaw)
-        covariance = pose_cfg.get("covariance_diagonal", [0.01, 0.01, 0.01])
+        covariance = pose_cfg.get("covariance_diagonal", self.pose_covariance_diagonal)
         if len(covariance) != 3:
             raise StateMachineError("covariance_diagonal must contain [x, y, yaw]")
 

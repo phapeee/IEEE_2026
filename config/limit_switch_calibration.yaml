@@ -10,7 +10,13 @@ limit_switch_calibration:
     success_event_type: "CALIBRATION_SUCCESS"
     failure_event_type: "CALIBRATION_FAILURE"
     default_timeout_sec: 6.0
+    direction_timeout_sec: 5.0
     move_publish_rate_hz: 25.0
+    action_name: "limit_switch_calibration"
+    linear_x_speed: 0.02
+    linear_y_speed: 0.02
+    pose_covariance_diagonal: [0.0001, 0.0001, 0.0001]
+    default_pose_frame_id: "map"
     set_pose_service: "/set_pose"
     state_machine_file: "/ws/config/limit_switch_sequences.yaml"
     front_switch_topic: "smacc2/front_switch_state"

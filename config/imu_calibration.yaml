@@ -1,6 +1,6 @@
 imu_calibration_node:
   ros__parameters:
-    input_topic: data_raw
+    input_topic: imu_data
     output_topic: imu
     queue_size: 50
     calibration_samples: 100

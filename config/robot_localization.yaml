@@ -19,12 +19,12 @@ ekf_filter_node:
     # ]
 
     # -------- IMU (yaw + yaw rate only) --------
-    imu0: /imu
+    imu0: /bot_keypad/imu_data
     imu0_config: [
       false, false, false,   # x, y, z
-      false, false, false,    # roll, pitch, yaw
+      false, false, true,    # roll, pitch, yaw
       false, false, false,   # vx, vy, vz
-      false, false, true,    # vroll, vpitch, vyaw
+      false, false, false,    # vroll, vpitch, vyaw
       false, false, false    # ax, ay, az
     ]
     imu0_queue_size: 10
@@ -32,10 +32,10 @@ ekf_filter_node:
     imu0_relative: false      # <- change to false
     imu0_remove_gravitational_acceleration: true
 
-    print_diagnostics: true
-    use_control: false
+    # print_diagnostics: true
+    # use_control: false
 
-    odom0: /mecanum_controller/odometry
+    odom0: /bot_keypad/mecanum_controller/odometry
     odom0_config: [
       false, false, false, 
       false, false, false, 

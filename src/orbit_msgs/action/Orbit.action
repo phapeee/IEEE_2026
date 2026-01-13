@@ -1,0 +1,12 @@
+# Goal
+geometry_msgs/Point center
+int8 direction  # -1=clockwise, 1=counterclockwise, 0=default ccw
+---
+# Result
+bool success
+string message
+---
+# Feedback
+float32 radius_error
+float32 yaw_error
+float32 current_radius

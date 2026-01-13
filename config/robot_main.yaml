@@ -25,7 +25,7 @@ components:
       robot_description: "$(xacro mini.urdf)"
 
   robot_localization:
-    enabled: false
+    enabled: true
     params_file: "robot_localization.yaml"
 
   initial_pose_publisher:

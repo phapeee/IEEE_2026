@@ -6,6 +6,8 @@
 namespace smacc_button_nav
 {
 
+using LimitSwitchCalibration = limit_switch_calibration_msgs::action::LimitSwitchCalibration;
+
 void SmButtonNav::loadTasksFromFile(const std::string & task_file)
 {
   YAML::Node root = YAML::LoadFile(task_file);
@@ -48,6 +50,19 @@ void SmButtonNav::loadTasksFromFile(const std::string & task_file)
       def.success_event_type = result["success_event_type"].as<std::string>("");
       def.failure_event_type = result["failure_event_type"].as<std::string>("");
       def.result_timeout_sec = result["timeout_sec"].as<double>(0.0);
+    }
+    else if (type == "limit_switch_calibration")
+    {
+      def.type = TaskType::LIMIT_SWITCH_CALIBRATION;
+      def.action_name = cfg["action_name"].as<std::string>("limit_switch_calibration");
+      if (cfg["directions"])
+        def.directions = cfg["directions"].as<std::vector<std::string>>();
+      YAML::Node pose = cfg["pose"];
+      def.pose_frame_id = pose["frame_id"].as<std::string>("map");
+      def.pose_x = pose["x"].as<double>(0.0);
+      def.pose_y = pose["y"].as<double>(0.0);
+      def.pose_yaw_deg = pose["yaw_deg"].as<double>(0.0);
+      def.action_timeout_sec = cfg["timeout_sec"].as<double>(0.0);
     }
     else
     {
@@ -527,6 +542,16 @@ void StWaypointWait::onExit()
   ext_sm_start_pub_.reset();
   ext_waiting_ = false;
 
+  if (calibration_timeout_timer_) {
+    calibration_timeout_timer_->cancel();
+    calibration_timeout_timer_.reset();
+  }
+  if (calibration_action_client_ && calibration_goal_handle_) {
+    calibration_action_client_->async_cancel_goal(calibration_goal_handle_);
+  }
+  calibration_goal_handle_.reset();
+  calibration_waiting_ = false;
+
   RCLCPP_INFO(this->getLogger(), "Exiting WaypointWait");
 }
 
@@ -699,6 +724,133 @@ void StWaypointWait::onEntry()
                 "External state machine timed out after %.2f seconds; treating as failure",
                 timeout_sec);
               this->completeExternalTask(false);
+            });
+      }
+
+      // NOTE: do NOT post EvWaitOver/EvMissionCompleted here.
+      // We stay in this state until success/failure/timeout.
+      break;
+    }
+
+    case TaskType::LIMIT_SWITCH_CALIBRATION:
+    {
+      RCLCPP_INFO(
+        this->getLogger(),
+        "LIMIT_SWITCH_CALIBRATION task '%s' at waypoint '%s'",
+        spec->task_name.c_str(), spec->name.c_str());
+
+      if (def.action_name.empty() || def.directions.empty())
+      {
+        RCLCPP_WARN(
+          this->getLogger(),
+          "Calibration task '%s' missing action_name or directions; skipping",
+          spec->task_name.c_str());
+        if (sm.hasPendingWaypoints())
+          this->postEvent<EvWaitOver>();
+        else
+          this->postEvent<EvMissionCompleted>();
+        break;
+      }
+
+      auto node = this->getNode();
+
+      if (!calibration_action_client_)
+      {
+        calibration_action_client_ =
+          rclcpp_action::create_client<LimitSwitchCalibration>(node, def.action_name);
+      }
+
+      if (!calibration_action_client_->wait_for_action_server(sm.serviceWaitTimeout()))
+      {
+        RCLCPP_WARN(
+          this->getLogger(),
+          "Calibration action server '%s' not available; treating as failure",
+          def.action_name.c_str());
+        completeCalibrationTask(false);
+        break;
+      }
+
+      calibration_waiting_ = true;
+
+      LimitSwitchCalibration::Goal goal;
+      goal.directions = def.directions;
+      goal.frame_id = def.pose_frame_id;
+      goal.x = def.pose_x;
+      goal.y = def.pose_y;
+      goal.yaw_deg = def.pose_yaw_deg;
+
+      auto send_goal_options =
+        rclcpp_action::Client<LimitSwitchCalibration>::SendGoalOptions();
+      send_goal_options.goal_response_callback =
+        [this](const auto & future) {
+          auto goal_handle = future.get();
+          if (!goal_handle)
+          {
+            RCLCPP_WARN(
+              this->getLogger(),
+              "Calibration goal rejected by action server");
+            completeCalibrationTask(false);
+            return;
+          }
+          calibration_goal_handle_ = goal_handle;
+        };
+      send_goal_options.feedback_callback =
+        [this](
+          rclcpp_action::ClientGoalHandle<LimitSwitchCalibration>::SharedPtr,
+          const LimitSwitchCalibration::Feedback::SharedPtr feedback) {
+          if (!feedback) {
+            return;
+          }
+          RCLCPP_DEBUG(
+            this->getLogger(),
+            "Calibration feedback: direction='%s' status='%s'",
+            feedback->current_direction.c_str(), feedback->status.c_str());
+        };
+      send_goal_options.result_callback =
+        [this](const rclcpp_action::ClientGoalHandle<LimitSwitchCalibration>::WrappedResult & result) {
+          if (!calibration_waiting_) {
+            return;
+          }
+          bool success =
+            result.code == rclcpp_action::ResultCode::SUCCEEDED &&
+            result.result &&
+            result.result->success;
+          if (success)
+          {
+            RCLCPP_INFO(
+              this->getLogger(),
+              "Calibration action succeeded: %s",
+              result.result->message.c_str());
+          }
+          else
+          {
+            RCLCPP_WARN(
+              this->getLogger(),
+              "Calibration action failed (code=%d): %s",
+              static_cast<int>(result.code),
+              result.result ? result.result->message.c_str() : "no result");
+          }
+          completeCalibrationTask(success);
+        };
+
+      calibration_action_client_->async_send_goal(goal, send_goal_options);
+
+      if (def.action_timeout_sec > 0.0)
+      {
+        const double timeout_sec = def.action_timeout_sec;
+        calibration_timeout_timer_ =
+          node->create_wall_timer(
+            std::chrono::duration<double>(timeout_sec),
+            [this, timeout_sec]()
+            {
+              if (!calibration_waiting_) {
+                return;
+              }
+              RCLCPP_WARN(
+                this->getLogger(),
+                "Calibration action timed out after %.2f seconds; treating as failure",
+                timeout_sec);
+              completeCalibrationTask(false);
             });
       }
 
@@ -972,6 +1124,47 @@ void StWaypointWait::completeExternalTask(bool success)
       RCLCPP_INFO(
         logger,
         "External state machine success at final waypoint; mission complete");
+    }
+    sm.postEvent<EvMissionCompleted>();
+  }
+}
+
+void StWaypointWait::completeCalibrationTask(bool success)
+{
+  if (!calibration_waiting_) {
+    return;
+  }
+
+  calibration_waiting_ = false;
+
+  if (calibration_timeout_timer_) {
+    calibration_timeout_timer_->cancel();
+    calibration_timeout_timer_.reset();
+  }
+
+  auto & sm   = this->context<SmButtonNav>();
+  auto logger = this->getLogger();
+
+  if (success && sm.hasPendingWaypoints())
+  {
+    RCLCPP_INFO(
+      logger,
+      "Calibration action completed successfully; proceeding to next waypoint");
+    sm.postEvent<EvWaitOver>();
+  }
+  else
+  {
+    if (!success)
+    {
+      RCLCPP_WARN(
+        logger,
+        "Calibration action reported FAILURE; ending mission");
+    }
+    else
+    {
+      RCLCPP_INFO(
+        logger,
+        "Calibration success at final waypoint; mission complete");
     }
     sm.postEvent<EvMissionCompleted>();
   }
