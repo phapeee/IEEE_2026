@@ -225,6 +225,9 @@ def _launch_components(context, *_: Any) -> List[Node]:
     if _component_enabled(config, "gpio_button_event"):
         nodes.extend(_create_gpio_button_event_nodes(config, global_namespace))
 
+    if _component_enabled(config, "isaac_sim_gpio"):
+        nodes.extend(_create_isaac_sim_gpio_nodes(config, global_namespace))
+
     if _component_enabled(config, "limit_switch_calibration"):
         nodes.extend(_create_limit_switch_calibration_nodes(config, global_namespace))
 
@@ -261,6 +264,39 @@ def _create_gpio_button_event_nodes(config: Dict[str, Any], global_namespace: st
         Node(
             package=node_cfg.get("package", "gpio_button_event"),
             executable=node_cfg.get("executable", "gpio_button_event_node"),
+            name=node_name,
+            parameters=parameter_entries,
+            remappings=remappings,
+            namespace=node_namespace,
+            output=node_cfg.get("output", "screen"),
+        )
+    ]
+
+
+def _create_isaac_sim_gpio_nodes(config: Dict[str, Any], global_namespace: str) -> List[Node]:
+    node_cfg = _component_config(config, "isaac_sim_gpio")
+    params_file = node_cfg.get("params_file")
+    inline_parameters = node_cfg.get("ros__parameters", {})
+    remappings = node_cfg.get("remappings", [])
+    if isinstance(remappings, dict):
+        remappings = list(remappings.items())
+
+    node_name = node_cfg.get("name", "isaac_sim_gpio")
+    parameter_entries: List[Any] = []
+    if params_file:
+        loaded_parameters = _load_parameters_from_file(params_file, node_name)
+        if loaded_parameters:
+            parameter_entries.append(loaded_parameters)
+    if inline_parameters:
+        parameter_entries.append(inline_parameters)
+
+    node_namespace = _resolve_namespace(global_namespace, node_cfg.get("namespace"))
+    parameter_entries = _namespace_frame_ids(parameter_entries, global_namespace)
+
+    return [
+        Node(
+            package=node_cfg.get("package", "isaac_sim_gpio"),
+            executable=node_cfg.get("executable", "isaac_sim_gpio_node"),
             name=node_name,
             parameters=parameter_entries,
             remappings=remappings,

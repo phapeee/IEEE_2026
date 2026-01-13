@@ -1,0 +1,48 @@
+isaac_sim_gpio:
+  ros__parameters:
+    input_topic: "joint_states_wheel"
+    output_topic: "smacc2/isaac_sim_gpio"
+    event_source: "robot_main/isaac_sim_gpio"
+    joints:
+      - limit_switch_1
+      - limit_switch_2
+      - limit_switch_3
+      - limit_switch_4
+      - limit_switch_5
+      - limit_switch_6
+
+    joints.limit_switch_1.joint_name: "DM1_01P_30_3_v6_Body_0_Revolute_2"
+    joints.limit_switch_1.gpio_name: "LM_rear_left"
+    joints.limit_switch_1.threshold: 0.1
+    joints.limit_switch_1.absolute_value: true
+    joints.limit_switch_1.operation: ">="
+
+    joints.limit_switch_2.joint_name: "DM1_01P_30_3_v6_Body_1_Revolute_2"
+    joints.limit_switch_2.gpio_name: "LM_left_rear"
+    joints.limit_switch_2.threshold: 0.1
+    joints.limit_switch_2.absolute_value: true
+    joints.limit_switch_2.operation: ">="
+
+    joints.limit_switch_3.joint_name: "DM1_01P_30_3_v6_Body_2_Revolute_2"
+    joints.limit_switch_3.gpio_name: "LM_left_front"
+    joints.limit_switch_3.threshold: 0.1
+    joints.limit_switch_3.absolute_value: true
+    joints.limit_switch_3.operation: ">="
+
+    joints.limit_switch_4.joint_name: "DM1_01P_30_3_v6_Body_3_Revolute_2"
+    joints.limit_switch_4.gpio_name: "LM_right_front"
+    joints.limit_switch_4.threshold: 0.1
+    joints.limit_switch_4.absolute_value: true
+    joints.limit_switch_4.operation: ">="
+
+    joints.limit_switch_5.joint_name: "DM1_01P_30_3_v6_Body_4_Revolute_2"
+    joints.limit_switch_5.gpio_name: "LM_right_rear"
+    joints.limit_switch_5.threshold: 0.1
+    joints.limit_switch_5.absolute_value: true
+    joints.limit_switch_5.operation: ">="
+
+    joints.limit_switch_6.joint_name: "DM1_01P_30_3_v6_Body_5_Revolute_2"
+    joints.limit_switch_6.gpio_name: "LM_rear_right"
+    joints.limit_switch_6.threshold: 0.1
+    joints.limit_switch_6.absolute_value: true
+    joints.limit_switch_6.operation: ">="

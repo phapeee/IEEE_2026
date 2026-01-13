@@ -1,6 +1,7 @@
+namespace: /bot_keypad
 components:
   cmd_vel_relay:
-    enabled: false
+    enabled: true
     name: cmd_vel_relay
     ros__parameters:
       input_topic: "/cmd_vel"
@@ -69,6 +70,11 @@ components:
     enabled: false
     name: gpio_button_event
     params_file: "gpio_button_event.yaml"
+
+  isaac_sim_gpio:
+    enabled: true
+    name: isaac_sim_gpio
+    params_file: "isaac_sim_gpio.yaml"
 
   limit_switch_calibration:
     enabled: false
