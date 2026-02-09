@@ -6,44 +6,75 @@ gpio_button_event:
     button_state_topic: "smacc2/button_state"
     event_source: "robot_main/gpio_button_event"
     switches:
-      - front_IR
-      - back_IR
-      - left_IR
-      - right_IR
+      - LM_BL
+      - LM_RF
+      - LM_BR
+      - LM_RR
+      - IR_F
+      - IR_B
+      - IR_L
+      - IR_R
 
-    switches.front_IR.gpio_line: 23
-    switches.front_IR.active_low: true
-    switches.front_IR.pullup: true
-    switches.front_IR.event_object_tag: "front_IR"
-    switches.front_IR.pressed_event_type: "front_IR"
-    switches.front_IR.released_event_type: "front_IR_released"
-    switches.front_IR.state_topic: "smacc2/front_IR_state"
+    switches.LM_BL.gpio_line: 17
+    switches.LM_BL.active_low: true
+    switches.LM_BL.pullup: true
+    switches.LM_BL.event_object_tag: "LM_BL"
+    switches.LM_BL.pressed_event_type: "LM_BL"
+    switches.LM_BL.released_event_type: "LM_BL_released"
+    switches.LM_BL.state_topic: "smacc2/LM_BL_state"
 
-    switches.back_IR.gpio_line: 17
-    switches.back_IR.active_low: true
-    switches.back_IR.pullup: true
-    switches.back_IR.event_object_tag: "back_IR"
-    switches.back_IR.pressed_event_type: "back_IR"
-    switches.back_IR.released_event_type: "back_IR_released"
-    switches.back_IR.state_topic: "smacc2/back_IR_state"
+    switches.LM_RF.gpio_line: 22
+    switches.LM_RF.active_low: true
+    switches.LM_RF.pullup: true
+    switches.LM_RF.event_object_tag: "LM_RF"
+    switches.LM_RF.pressed_event_type: "LM_RF"
+    switches.LM_RF.released_event_type: "LM_RF_released"
+    switches.LM_RF.state_topic: "smacc2/LM_RF_state"
 
-    switches.left_IR.gpio_line: 27
-    switches.left_IR.active_low: true
-    switches.left_IR.pullup: true
-    switches.left_IR.event_object_tag: "left_IR"
-    switches.left_IR.pressed_event_type: "left_IR"
-    switches.left_IR.released_event_type: "left_IR_released"
-    switches.left_IR.state_topic: "smacc2/left_IR_state"
+    switches.LM_BR.gpio_line: 23
+    switches.LM_BR.active_low: true
+    switches.LM_BR.pullup: true
+    switches.LM_BR.event_object_tag: "LM_BR"
+    switches.LM_BR.pressed_event_type: "LM_BR"
+    switches.LM_BR.released_event_type: "LM_BR_released"
+    switches.LM_BR.state_topic: "smacc2/LM_BR_state"
 
-    switches.right_IR.gpio_line: 22
-    switches.right_IR.active_low: true
-    switches.right_IR.pullup: true
-    switches.right_IR.event_object_tag: "right_IR"
-    switches.right_IR.pressed_event_type: "right_IR"
-    switches.right_IR.released_event_type: "right_IR_released"
-    switches.right_IR.state_topic: "smacc2/right_IR_state"
+    switches.LM_RR.gpio_line: 27
+    switches.LM_RR.active_low: true
+    switches.LM_RR.pullup: true
+    switches.LM_RR.event_object_tag: "LM_RR"
+    switches.LM_RR.pressed_event_type: "LM_RR"
+    switches.LM_RR.released_event_type: "LM_RR_released"
+    switches.LM_RR.state_topic: "smacc2/LM_RR_state"
 
-    # 17 - LM_BL
-    # 22 - LM_RF
-    # 23 - LM_RR
-    # 27 - LM_BR    
+    switches.IR_F.gpio_line: 24
+    switches.IR_F.active_low: true
+    switches.IR_F.pullup: false
+    switches.IR_F.event_object_tag: "IR_F"
+    switches.IR_F.pressed_event_type: "IR_F"
+    switches.IR_F.released_event_type: "IR_F_released"
+    switches.IR_F.state_topic: "smacc2/IR_F_state"
+
+    switches.IR_B.gpio_line: 25
+    switches.IR_B.active_low: true
+    switches.IR_B.pullup: false
+    switches.IR_B.event_object_tag: "IR_B"
+    switches.IR_B.pressed_event_type: "IR_B"
+    switches.IR_B.released_event_type: "IR_B_released"
+    switches.IR_B.state_topic: "smacc2/IR_B_state"
+
+    switches.IR_L.gpio_line: 5
+    switches.IR_L.active_low: true
+    switches.IR_L.pullup: false
+    switches.IR_L.event_object_tag: "IR_L"
+    switches.IR_L.pressed_event_type: "IR_L"
+    switches.IR_L.released_event_type: "IR_L_released"
+    switches.IR_L.state_topic: "smacc2/IR_L_state"
+
+    switches.IR_R.gpio_line: 6
+    switches.IR_R.active_low: true
+    switches.IR_R.pullup: false
+    switches.IR_R.event_object_tag: "IR_R"
+    switches.IR_R.pressed_event_type: "IR_R"
+    switches.IR_R.released_event_type: "IR_R_released"
+    switches.IR_R.state_topic: "smacc2/IR_R_state"
