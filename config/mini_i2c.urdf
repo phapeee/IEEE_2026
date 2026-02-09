@@ -5,7 +5,7 @@
   <xacro:property name="robot_ns" value="$(arg robot_namespace)"/>
 
   <xacro:include filename="mini_base.urdf"/>
-  <xacro:include filename="mini_ros2_control.urdf"/>
+  <xacro:include filename="mini_ros2_control_i2c.urdf"/>
 
   <xacro:mini_base robot_namespace="${robot_ns}"/>
   <xacro:mini_ros2_control robot_namespace="${robot_ns}"/>

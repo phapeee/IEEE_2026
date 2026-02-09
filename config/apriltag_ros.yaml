@@ -1,0 +1,28 @@
+apriltag:
+  # Remap inputs as needed for your camera pipeline.
+  remappings:
+    image_rect: "/bot_keypad/image_raw"
+    camera_info: "/bot_keypad/camera_info"
+
+  ros__parameters:
+    image_transport: raw
+    family: 25h9
+    size: 0.02
+    max_hamming: 0
+    qos_profile: default
+
+    detector:
+      threads: 2
+      decimate: 2.0
+      blur: 0.0
+      refine: true
+      sharpening: 0.25
+      debug: false
+
+    pose_estimation_method: "pnp"
+
+    # Optional list of tags. When empty, all detected tags are published.
+    tag:
+      ids: []
+      frames: []
+      sizes: []

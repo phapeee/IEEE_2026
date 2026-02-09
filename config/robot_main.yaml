@@ -1,7 +1,7 @@
 namespace: /bot_keypad
 components:
   cmd_vel_relay:
-    enabled: true
+    enabled: false
     name: cmd_vel_relay
     ros__parameters:
       input_topic: "/cmd_vel"
@@ -9,23 +9,26 @@ components:
       frame_id: "base_link"
       
   controller_manager:
-    enabled: true
+    enabled: false
     params_file:
       - "ros2_controllers.yaml"
+    wait_for_services:
+      - "i2c_manager/transfer"
 
   mecanum_controller_spawner:
-    enabled: true
+    enabled: false
     controller_name: mecanum_controller
     controller_manager: /bot_keypad/controller_manager
 
   robot_state_publisher:
-    enabled: true
+    enabled: false
     parameters:
       publish_robot_description: true
-      robot_description: "$(xacro mini.urdf)"
+      # robot_description: "$(xacro mini.urdf)"
+      robot_description: "$(xacro mini_i2c.urdf)"
 
   robot_localization:
-    enabled: true
+    enabled: false
     params_file: "robot_localization.yaml"
 
   initial_pose_publisher:
@@ -67,12 +70,13 @@ components:
     params_file: "holonomic_pi_controller.yaml"
 
   gpio_button_event:
-    enabled: false
+    enabled: true
     name: gpio_button_event
     params_file: "gpio_button_event.yaml"
+    prime_pullups: true
 
   isaac_sim_gpio:
-    enabled: true
+    enabled: false
     name: isaac_sim_gpio
     params_file: "isaac_sim_gpio.yaml"
 
@@ -100,6 +104,33 @@ components:
     enabled: false
     params_file: "pointcloud_filter.yaml"
 
+  usb_cam:
+    enabled: false
+    name: usb_cam
+    params_file: "usb_cam.yaml"
+    # namespace: "camera"
+    # remappings:
+    #   image_raw: "camera/image_raw"
+    #   camera_info: "camera/camera_info"
+
+  apriltag_ros:
+    enabled: false
+    name: apriltag
+    params_file: "apriltag_ros.yaml"
+
   uwb_triangulaion:
     enabled: false
     params_file: "uwb_config.yaml"
+
+  uwb_i2c_reader:
+    enabled: false
+    params_file: "uwb_i2c_reader.yaml"
+    wait_for_services:
+      - "i2c_manager/transfer"
+
+  i2c_manager:
+    enabled: false
+    ros__parameters:
+      i2c_device: "/dev/i2c-1"
+      service_name: "i2c_manager/transfer"
+      log_i2c_commands: false

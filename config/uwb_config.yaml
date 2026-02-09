@@ -3,13 +3,13 @@ frame_id: bot_keypad/odom
 offset_x: -0.05917
 offset_y: -0.08995
 anchors:
-  - id: 84418844
+  - id: 40961
     position:
       - 0.0
       - 0.0
-  - id: 218522628
+  - id: 40962
     position:
-      - 1.0
+      - 0.82
       - 0.0
 sign_constraints:
   sign_x: 1

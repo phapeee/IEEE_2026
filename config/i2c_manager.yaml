@@ -1,0 +1,4 @@
+i2c_manager:
+  ros__parameters:
+    i2c_device: "/dev/i2c-1"
+    service_name: "i2c_manager/transfer"

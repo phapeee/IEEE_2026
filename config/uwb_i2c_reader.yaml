@@ -1,0 +1,7 @@
+uwb_i2c_reader:
+  ros__parameters:
+    i2c_address: 0x42
+    i2c_service: "i2c_manager/transfer"
+    poll_rate_hz: 20.0
+    topic: "uwb_data"
+    frame_id: "uwb"

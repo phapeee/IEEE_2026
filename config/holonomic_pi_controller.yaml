@@ -4,7 +4,7 @@ holonomic_pi_controller:
     cmd_vel_topic: "/mecanum_controller/reference"
     cmd_vel_frame_id: "base_link"
     unstamped_cmd_vel_topic: "/cmd_vel"
-    debug_enabled: true
+    debug_enabled: false
     debug_error_topic: "/holonomic_pi_controller/error"
     debug_distance_topic: "/holonomic_pi_controller/distance"
     global_frame: "map"

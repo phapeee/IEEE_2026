@@ -1,0 +1,9 @@
+<?xml version="1.0"?>
+<library path="i2c_velocity_hardware">
+  <class
+    name="i2c_velocity_hardware/I2cVelocityHardware"
+    type="i2c_velocity_hardware::I2cVelocityHardware"
+    base_class_type="hardware_interface::SystemInterface">
+    <description>I2C-backed ros2_control hardware interface for wheel velocities.</description>
+  </class>
+</library>

@@ -1,0 +1,33 @@
+/**:
+  ros__parameters:
+    video_device: "/dev/video0"
+    framerate: 25.0
+    io_method: "mmap"
+    frame_id: "camera"
+    image_width: 800
+    image_height: 600
+    # Supported sizes (MJPEG): 1280x720, 1280x800, 800x600, 848x480, 640x480, 640x360, 320x240, 320x180.
+    # Supported sizes (YUYV): 1280x720, 1280x800, 800x600, 848x480, 640x480, 640x360, 320x240, 320x180.
+
+    # Use "mjpeg2rgb" (MJPEG) or "yuyv" (YUYV 4:2:2) for this camera.
+    pixel_format: "mjpeg2rgb"
+    # For MJPEG, av_device_format is ignored; keep for reference.
+    av_device_format: "YUV422P"
+
+    # Base calibration file. The launch file scales intrinsics to match image_width/height
+    # and writes the scaled result to camera_info_url.
+    camera_name: "usb_cam"
+    camera_info_calibration_url: "camera_info_base.yaml"
+    camera_info_url: "camera_info.yaml"
+
+    brightness: 200
+    contrast: 100
+    saturation: -1
+    sharpness: -1
+    gain: -1
+    auto_white_balance: true
+    white_balance: 4000
+    autoexposure: true
+    exposure: 100
+    autofocus: false
+    focus: -1

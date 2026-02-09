@@ -5,6 +5,7 @@
 #include <string>
 #include <thread>
 #include <algorithm>
+#include <filesystem>
 #include <vector>
 
 #include <rclcpp/rclcpp.hpp>
@@ -144,8 +145,10 @@ public:
   SmaccGpioButtonNode()
   : rclcpp::Node("smacc_gpio_button_node")
   {
+    const std::string default_gpio_chip =
+      std::filesystem::exists("/dev/gpiochip4") ? "gpiochip4" : "gpiochip0";
     backend_ = declare_parameter<std::string>("backend", "gpiod");
-    gpio_chip_ = declare_parameter<std::string>("gpio_chip", "gpiochip0");
+    gpio_chip_ = declare_parameter<std::string>("gpio_chip", default_gpio_chip);
     gpio_line_ = declare_parameter<int>("gpio_line", 4);
     active_low_ = declare_parameter<bool>("active_low", false);
     default_pull_up_ = declare_parameter<bool>("use_internal_pullup", false);

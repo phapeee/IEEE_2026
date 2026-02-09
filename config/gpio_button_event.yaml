@@ -1,53 +1,49 @@
 gpio_button_event:
   ros__parameters:
     backend: gpiod
-    gpio_chip: "gpiochip0"
+    gpio_chip: "gpiochip4"
     smacc_event_topic: "smacc2/button_event"
     button_state_topic: "smacc2/button_state"
     event_source: "robot_main/gpio_button_event"
     switches:
-      - start_switch
-      - front_switch
-      - back_switch
-      - left_switch
-      - right_switch
+      - front_IR
+      - back_IR
+      - left_IR
+      - right_IR
 
-    switches.start_switch.gpio_line: 4
-    switches.start_switch.active_low: true
-    switches.start_switch.pullup: true
-    switches.start_switch.event_object_tag: "start_switch"
-    switches.start_switch.pressed_event_type: "start_switch"
-    switches.start_switch.released_event_type: "start_switch_released"
-    switches.start_switch.state_topic: "smacc2/start_switch_state"
+    switches.front_IR.gpio_line: 23
+    switches.front_IR.active_low: true
+    switches.front_IR.pullup: true
+    switches.front_IR.event_object_tag: "front_IR"
+    switches.front_IR.pressed_event_type: "front_IR"
+    switches.front_IR.released_event_type: "front_IR_released"
+    switches.front_IR.state_topic: "smacc2/front_IR_state"
 
-    switches.front_switch.gpio_line: 24
-    switches.front_switch.active_low: true
-    switches.front_switch.pullup: true
-    switches.front_switch.event_object_tag: "front_switch"
-    switches.front_switch.pressed_event_type: "front_switch"
-    switches.front_switch.released_event_type: "front_switch_released"
-    switches.front_switch.state_topic: "smacc2/front_switch_state"
+    switches.back_IR.gpio_line: 17
+    switches.back_IR.active_low: true
+    switches.back_IR.pullup: true
+    switches.back_IR.event_object_tag: "back_IR"
+    switches.back_IR.pressed_event_type: "back_IR"
+    switches.back_IR.released_event_type: "back_IR_released"
+    switches.back_IR.state_topic: "smacc2/back_IR_state"
 
-    switches.back_switch.gpio_line: 16
-    switches.back_switch.active_low: true
-    switches.back_switch.pullup: true
-    switches.back_switch.event_object_tag: "back_switch"
-    switches.back_switch.pressed_event_type: "back_switch"
-    switches.back_switch.released_event_type: "back_switch_released"
-    switches.back_switch.state_topic: "smacc2/back_switch_state"
+    switches.left_IR.gpio_line: 27
+    switches.left_IR.active_low: true
+    switches.left_IR.pullup: true
+    switches.left_IR.event_object_tag: "left_IR"
+    switches.left_IR.pressed_event_type: "left_IR"
+    switches.left_IR.released_event_type: "left_IR_released"
+    switches.left_IR.state_topic: "smacc2/left_IR_state"
 
-    switches.left_switch.gpio_line: 18
-    switches.left_switch.active_low: true
-    switches.left_switch.pullup: true
-    switches.left_switch.event_object_tag: "left_switch"
-    switches.left_switch.pressed_event_type: "left_switch"
-    switches.left_switch.released_event_type: "left_switch_released"
-    switches.left_switch.state_topic: "smacc2/left_switch_state"
+    switches.right_IR.gpio_line: 22
+    switches.right_IR.active_low: true
+    switches.right_IR.pullup: true
+    switches.right_IR.event_object_tag: "right_IR"
+    switches.right_IR.pressed_event_type: "right_IR"
+    switches.right_IR.released_event_type: "right_IR_released"
+    switches.right_IR.state_topic: "smacc2/right_IR_state"
 
-    switches.right_switch.gpio_line: 1
-    switches.right_switch.active_low: true
-    switches.right_switch.pullup: true
-    switches.right_switch.event_object_tag: "right_switch"
-    switches.right_switch.pressed_event_type: "right_switch"
-    switches.right_switch.released_event_type: "right_switch_released"
-    switches.right_switch.state_topic: "smacc2/right_switch_state"
+    # 17 - LM_BL
+    # 22 - LM_RF
+    # 23 - LM_RR
+    # 27 - LM_BR    

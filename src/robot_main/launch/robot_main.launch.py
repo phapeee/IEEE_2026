@@ -2,12 +2,21 @@
 
 import math
 import os
+from copy import deepcopy
 from pathlib import Path
 from typing import Any, Dict, List
 
 import yaml
+from ament_index_python.packages import get_package_share_directory
 from launch import LaunchDescription
-from launch.actions import DeclareLaunchArgument, ExecuteProcess, OpaqueFunction, TimerAction
+from launch.actions import (
+    DeclareLaunchArgument,
+    ExecuteProcess,
+    OpaqueFunction,
+    RegisterEventHandler,
+    TimerAction,
+)
+from launch.event_handlers import OnProcessExit
 from launch.substitutions import Command, FindExecutable, LaunchConfiguration
 from launch_ros.actions import Node
 from launch_ros.parameter_descriptions import ParameterValue
@@ -48,7 +57,7 @@ def generate_launch_description() -> LaunchDescription:
     )
 
 
-def _launch_components(context, *_: Any) -> List[Node]:
+def _launch_components(context, *_: Any) -> List[Any]:
     global _CONFIG_BASE_DIR
     config_path = Path(context.perform_substitution(LaunchConfiguration("robot_main_config")))
     if not config_path.is_absolute():
@@ -76,7 +85,7 @@ def _launch_components(context, *_: Any) -> List[Node]:
         Command(xacro_command),
         value_type=str,
     )
-    nodes: List[Node] = []
+    nodes: List[Any] = []
 
     if _component_enabled(config, "controller_manager"):
         controller_cfg = _component_config(config, "controller_manager")
@@ -87,15 +96,14 @@ def _launch_components(context, *_: Any) -> List[Node]:
             cm_parameters.append(controller_parameters)
         cm_namespace = _resolve_namespace(global_namespace, controller_cfg.get("namespace"))
         cm_parameters = _namespace_frame_ids(cm_parameters, global_namespace)
-        nodes.append(
-            Node(
-                package="controller_manager",
-                executable="ros2_control_node",
-                parameters=cm_parameters,
-                namespace=cm_namespace,
-                output=controller_cfg.get("output", "screen"),
-            )
+        cm_node = Node(
+            package="controller_manager",
+            executable="ros2_control_node",
+            parameters=cm_parameters,
+            namespace=cm_namespace,
+            output=controller_cfg.get("output", "screen"),
         )
+        nodes.extend(_wrap_with_wait_for_services(controller_cfg, global_namespace, [cm_node]))
 
     if _component_enabled(config, "joint_state_broadcaster_spawner"):
         js_cfg = _component_config(config, "joint_state_broadcaster_spawner")
@@ -191,6 +199,14 @@ def _launch_components(context, *_: Any) -> List[Node]:
     if _component_enabled(config, "pointcloud_filter"):
         nodes.extend(_create_pointcloud_filter_nodes(config, global_namespace))
 
+    for component_name in _component_variant_names(config, "usb_cam"):
+        if _component_enabled(config, component_name):
+            nodes.extend(_create_usb_cam_nodes(config, global_namespace, component_name=component_name))
+
+    for component_name in _component_variant_names(config, "apriltag_ros"):
+        if _component_enabled(config, component_name):
+            nodes.extend(_create_apriltag_nodes(config, global_namespace, component_name=component_name))
+
     if _component_enabled(config, "robot_localization"):
         nodes.extend(_create_robot_localization_nodes(config, global_namespace))
 
@@ -234,6 +250,26 @@ def _launch_components(context, *_: Any) -> List[Node]:
     if _component_enabled(config, "waypoint_state_machine"):
         nodes.extend(_create_waypoint_state_machine_nodes(config, global_namespace))
 
+    if _component_enabled(config, "i2c_manager"):
+        i2c_actions = _create_i2c_manager_nodes(config, global_namespace)
+        nodes.extend(
+            _wrap_with_wait_for_services(
+                _component_config(config, "i2c_manager"),
+                global_namespace,
+                i2c_actions,
+            )
+        )
+
+    if _component_enabled(config, "uwb_i2c_reader"):
+        uwb_actions = _create_uwb_i2c_reader_nodes(config, global_namespace)
+        nodes.extend(
+            _wrap_with_wait_for_services(
+                _component_config(config, "uwb_i2c_reader"),
+                global_namespace,
+                uwb_actions,
+            )
+        )
+
     if _component_enabled(config, "uwb_triangulaion"):
         nodes.extend(_create_uwb_triangulaion_nodes(config, global_namespace))
 
@@ -260,16 +296,44 @@ def _create_gpio_button_event_nodes(config: Dict[str, Any], global_namespace: st
     node_namespace = _resolve_namespace(global_namespace, node_cfg.get("namespace"))
     parameter_entries = _namespace_frame_ids(parameter_entries, global_namespace)
 
+    node_action = Node(
+        package=node_cfg.get("package", "gpio_button_event"),
+        executable=node_cfg.get("executable", "gpio_button_event_node"),
+        name=node_name,
+        parameters=parameter_entries,
+        remappings=remappings,
+        namespace=node_namespace,
+        output=node_cfg.get("output", "screen"),
+    )
+
+    prime_pullups = bool(node_cfg.get("prime_pullups", False))
+    if not prime_pullups:
+        return [node_action]
+
+    merged_params: Dict[str, Any] = {}
+    for entry in parameter_entries:
+        if isinstance(entry, dict):
+            merged_params.update(entry)
+
+    gpio_chip, pullup_lines = _extract_gpio_pullups(merged_params)
+    if not pullup_lines:
+        return [node_action]
+
+    repo_root = _CONFIG_BASE_DIR.parent if _CONFIG_BASE_DIR is not None else Path.cwd()
+    prime_script = node_cfg.get("prime_pullups_script")
+    if prime_script:
+        script_path = _resolve_config_path(prime_script) or prime_script
+    else:
+        script_path = str(repo_root / "scripts" / "prime_gpio_pullups.sh")
+
+    prime_action = ExecuteProcess(
+        cmd=[script_path, gpio_chip, *[str(line) for line in pullup_lines]],
+        output=node_cfg.get("output", "screen"),
+    )
+
     return [
-        Node(
-            package=node_cfg.get("package", "gpio_button_event"),
-            executable=node_cfg.get("executable", "gpio_button_event_node"),
-            name=node_name,
-            parameters=parameter_entries,
-            remappings=remappings,
-            namespace=node_namespace,
-            output=node_cfg.get("output", "screen"),
-        )
+        prime_action,
+        RegisterEventHandler(OnProcessExit(target_action=prime_action, on_exit=[node_action])),
     ]
 
 
@@ -482,6 +546,94 @@ def _create_pointcloud_filter_nodes(config: Dict[str, Any], global_namespace: st
             executable=node_cfg.get("executable", "pointcloud_filter_node"),
             name=node_name,
             parameters=node_parameters,
+            remappings=remappings,
+            namespace=node_namespace,
+            output=node_cfg.get("output", "screen"),
+        )
+    ]
+
+
+def _create_usb_cam_nodes(
+    config: Dict[str, Any], global_namespace: str, component_name: str = "usb_cam"
+) -> List[Node]:
+    node_cfg = _component_config(config, component_name)
+    params_file = node_cfg.get("params_file", _discover_default_config("usb_cam.yaml"))
+    inline_parameters = node_cfg.get("ros__parameters", {})
+    remappings = node_cfg.get("remappings", [])
+    if isinstance(remappings, dict):
+        remappings = list(remappings.items())
+    elif not isinstance(remappings, list):
+        remappings = []
+
+    node_name = node_cfg.get("name", "usb_cam")
+    parameter_entries: List[Any] = []
+    merged_parameters: Dict[str, Any] = {}
+    if params_file:
+        loaded_parameters = _load_parameters_from_file(params_file, node_name)
+        if loaded_parameters:
+            parameter_entries.append(loaded_parameters)
+            merged_parameters.update(loaded_parameters)
+    if inline_parameters:
+        parameter_entries.append(inline_parameters)
+        merged_parameters.update(inline_parameters)
+
+    scaled_camera_info_url = _maybe_scale_camera_info(merged_parameters, node_name)
+    if scaled_camera_info_url:
+        parameter_entries.append({"camera_info_url": scaled_camera_info_url})
+
+    node_namespace = _resolve_namespace(global_namespace, node_cfg.get("namespace"))
+    parameter_entries = _namespace_frame_ids(parameter_entries, global_namespace)
+
+    return [
+        Node(
+            package=node_cfg.get("package", "usb_cam"),
+            executable=node_cfg.get("executable", "usb_cam_node_exe"),
+            name=node_name,
+            parameters=parameter_entries,
+            remappings=remappings,
+            namespace=node_namespace,
+            output=node_cfg.get("output", "screen"),
+        )
+    ]
+
+
+def _create_apriltag_nodes(
+    config: Dict[str, Any], global_namespace: str, component_name: str = "apriltag_ros"
+) -> List[Node]:
+    node_cfg = _component_config(config, component_name)
+    params_file = node_cfg.get("params_file", _discover_default_config("apriltag_ros.yaml"))
+    inline_parameters = node_cfg.get("ros__parameters", {})
+    remappings = node_cfg.get("remappings", [])
+    if isinstance(remappings, dict):
+        remappings = list(remappings.items())
+    elif not isinstance(remappings, list):
+        remappings = []
+
+    node_name = node_cfg.get("name", "apriltag")
+    node_namespace = _resolve_namespace(global_namespace, node_cfg.get("namespace"))
+    parameter_entries: List[Any] = []
+    if params_file:
+        ros_params = _load_ros_parameters_from_file(params_file, node_name)
+        ros_params = _prune_empty_apriltag_params(ros_params)
+        if ros_params:
+            params_path = _write_generated_params_file(node_name, node_namespace, ros_params)
+            if params_path:
+                parameter_entries.append(params_path)
+        if not remappings:
+            file_remappings = _load_remappings_from_file(params_file, node_name)
+            if file_remappings:
+                remappings = file_remappings
+    if inline_parameters:
+        parameter_entries.append(inline_parameters)
+
+    parameter_entries = _namespace_frame_ids(parameter_entries, global_namespace)
+
+    return [
+        Node(
+            package=node_cfg.get("package", "apriltag_ros"),
+            executable=node_cfg.get("executable", "apriltag_node"),
+            name=node_name,
+            parameters=parameter_entries,
             remappings=remappings,
             namespace=node_namespace,
             output=node_cfg.get("output", "screen"),
@@ -849,6 +1001,72 @@ def _create_laser_scan_merger_nodes(config: Dict[str, Any], global_namespace: st
     ]
 
 
+def _create_i2c_manager_nodes(config: Dict[str, Any], global_namespace: str) -> List[Node]:
+    node_cfg = _component_config(config, "i2c_manager")
+    params_file = node_cfg.get("params_file")
+    inline_parameters = node_cfg.get("ros__parameters", {})
+    remappings = node_cfg.get("remappings", [])
+    if isinstance(remappings, dict):
+        remappings = list(remappings.items())
+
+    node_name = node_cfg.get("name", "i2c_manager")
+    parameter_entries: List[Any] = []
+    if params_file:
+        loaded_parameters = _load_parameters_from_file(params_file, node_name)
+        if loaded_parameters:
+            parameter_entries.append(loaded_parameters)
+    if inline_parameters:
+        parameter_entries.append(inline_parameters)
+
+    node_namespace = _resolve_namespace(global_namespace, node_cfg.get("namespace"))
+    parameter_entries = _namespace_frame_ids(parameter_entries, global_namespace)
+
+    return [
+        Node(
+            package=node_cfg.get("package", "i2c_manager"),
+            executable=node_cfg.get("executable", "i2c_manager_node"),
+            name=node_name,
+            parameters=parameter_entries,
+            remappings=remappings,
+            namespace=node_namespace,
+            output=node_cfg.get("output", "screen"),
+        )
+    ]
+
+
+def _create_uwb_i2c_reader_nodes(config: Dict[str, Any], global_namespace: str) -> List[Node]:
+    node_cfg = _component_config(config, "uwb_i2c_reader")
+    params_file = node_cfg.get("params_file")
+    inline_parameters = node_cfg.get("ros__parameters", {})
+    remappings = node_cfg.get("remappings", [])
+    if isinstance(remappings, dict):
+        remappings = list(remappings.items())
+
+    node_name = node_cfg.get("name", "uwb_i2c_reader")
+    parameter_entries: List[Any] = []
+    if params_file:
+        loaded_parameters = _load_parameters_from_file(params_file, node_name)
+        if loaded_parameters:
+            parameter_entries.append(loaded_parameters)
+    if inline_parameters:
+        parameter_entries.append(inline_parameters)
+
+    node_namespace = _resolve_namespace(global_namespace, node_cfg.get("namespace"))
+    parameter_entries = _namespace_frame_ids(parameter_entries, global_namespace)
+
+    return [
+        Node(
+            package=node_cfg.get("package", "uwb_i2c_reader"),
+            executable=node_cfg.get("executable", "uwb_i2c_reader_node"),
+            name=node_name,
+            parameters=parameter_entries,
+            remappings=remappings,
+            namespace=node_namespace,
+            output=node_cfg.get("output", "screen"),
+        )
+    ]
+
+
 def _create_uwb_triangulaion_nodes(config: Dict[str, Any], global_namespace: str) -> List[Node]:
     node_cfg = _component_config(config, "uwb_triangulaion")
     params_file = node_cfg.get("params_file", _discover_default_config("uwb_config.yaml"))
@@ -976,14 +1194,17 @@ def _extract_xacro_target(value: str) -> str | None:
 
 
 def _discover_default_config(filename: str) -> str:
-    """Search upward from this file for a config directory containing filename."""
+    """Prefer config/filename in CWD, else search upward from this file."""
+    cwd_candidate = Path.cwd() / "config" / filename
+    if cwd_candidate.exists():
+        return str(cwd_candidate)
     launch_path = Path(__file__).resolve()
     for parent in launch_path.parents:
         candidate = parent / "config" / filename
         if candidate.exists():
             return str(candidate)
     # Fallback to a relative config/filename inside the current working directory.
-    return str(Path.cwd() / "config" / filename)
+    return str(cwd_candidate)
 
 
 def _load_robot_main_config(config_path: Path) -> Dict[str, Any]:
@@ -1094,6 +1315,53 @@ def _component_enabled(config: Dict[str, Any], name: str) -> bool:
     return _component_requirements_met(name, entry)
 
 
+def _wrap_with_wait_for_services(
+    component_cfg: Dict[str, Any],
+    global_namespace: str,
+    actions: List[Any],
+) -> List[Any]:
+    wait_for = component_cfg.get("wait_for_services")
+    if not wait_for:
+        return actions
+    if isinstance(wait_for, str):
+        services = [wait_for]
+    elif isinstance(wait_for, list):
+        services = wait_for
+    else:
+        return actions
+
+    wait_services = [
+        _namespaced_topic(global_namespace, service)
+        for service in services
+        if isinstance(service, str) and service.strip()
+    ]
+    if not wait_services:
+        return actions
+
+    output = component_cfg.get("output", "screen")
+    wait_actions: List[Any] = []
+    previous_action: ExecuteProcess | None = None
+    for service in wait_services:
+        wait_cmd = f"until ros2 service list | grep -q '^{service}$'; do sleep 0.2; done"
+        wait_action = ExecuteProcess(cmd=["bash", "-lc", wait_cmd], output=output)
+        if previous_action is None:
+            wait_actions.append(wait_action)
+        else:
+            wait_actions.append(
+                RegisterEventHandler(
+                    OnProcessExit(target_action=previous_action, on_exit=[wait_action])
+                )
+            )
+        previous_action = wait_action
+
+    wait_actions.append(
+        RegisterEventHandler(
+            OnProcessExit(target_action=previous_action, on_exit=actions)
+        )
+    )
+    return wait_actions
+
+
 def _load_topics(config_path: str) -> Dict[str, Any]:
     resolved_path = _resolve_config_path(config_path)
     if not resolved_path:
@@ -1115,6 +1383,287 @@ def _load_yaml_file(path: Path) -> Dict[str, Any]:
     with open(path, "r", encoding="utf-8") as config_file:
         data = yaml.safe_load(config_file) or {}
     return data if isinstance(data, dict) else {}
+
+
+def _load_ros_parameters_from_file(path_str: str, node_name: str) -> Dict[str, Any]:
+    resolved_path = _resolve_config_path(path_str)
+    if not resolved_path:
+        return {}
+    path = Path(resolved_path)
+    data = _load_yaml_file(path)
+    if not data:
+        return {}
+    candidates = [
+        node_name,
+        f"/{node_name}",
+        "/**",
+    ]
+    entry: Dict[str, Any] = {}
+    for key in candidates:
+        maybe_entry = data.get(key)
+        if isinstance(maybe_entry, dict):
+            entry = maybe_entry
+            break
+    if not entry:
+        # Fall back to the first dict entry, if any.
+        for maybe_entry in data.values():
+            if isinstance(maybe_entry, dict):
+                entry = maybe_entry
+                break
+    if not entry:
+        return {}
+    ros_parameters = entry.get("ros__parameters")
+    if isinstance(ros_parameters, dict):
+        return ros_parameters
+    return {}
+
+
+def _prune_empty_apriltag_params(params: Dict[str, Any]) -> Dict[str, Any]:
+    """Remove empty tag filters so apriltag_ros doesn't error on empty arrays."""
+    if not isinstance(params, dict):
+        return params
+    tag_cfg = params.get("tag")
+    if not isinstance(tag_cfg, dict):
+        return params
+    ids = tag_cfg.get("ids")
+    if isinstance(ids, list) and not ids:
+        params = dict(params)
+        params.pop("tag", None)
+        return params
+    tag_cfg = dict(tag_cfg)
+    for key in ("frames", "sizes"):
+        value = tag_cfg.get(key)
+        if isinstance(value, list) and not value:
+            tag_cfg.pop(key, None)
+    params = dict(params)
+    params["tag"] = tag_cfg
+    return params
+
+
+def _load_remappings_from_file(path_str: str, node_name: str) -> List[Any]:
+    resolved_path = _resolve_config_path(path_str)
+    if not resolved_path:
+        return []
+    path = Path(resolved_path)
+    data = _load_yaml_file(path)
+    if not data:
+        return []
+    candidates = [
+        node_name,
+        f"/{node_name}",
+        "/**",
+    ]
+    entry: Dict[str, Any] = {}
+    for key in candidates:
+        maybe_entry = data.get(key)
+        if isinstance(maybe_entry, dict):
+            entry = maybe_entry
+            break
+    if not entry:
+        # Fall back to the first dict entry, if any.
+        for maybe_entry in data.values():
+            if isinstance(maybe_entry, dict):
+                entry = maybe_entry
+                break
+    remappings = entry.get("remappings") if isinstance(entry, dict) else None
+    if remappings is None:
+        remappings = data.get("remappings") if isinstance(data, dict) else None
+    if isinstance(remappings, dict):
+        return list(remappings.items())
+    if isinstance(remappings, list):
+        return remappings
+    return []
+
+
+def _write_generated_params_file(node_name: str, node_namespace: str, params: Dict[str, Any]) -> str | None:
+    if not params:
+        return None
+    ros_home = Path(os.environ.get("ROS_HOME", str(Path.home() / ".ros")))
+    target_dir = ros_home / "robot_main" / "params"
+    target_dir.mkdir(parents=True, exist_ok=True)
+    safe_name = "".join(ch if ch.isalnum() or ch in ("-", "_") else "_" for ch in node_name)
+    target_path = target_dir / f"{safe_name}_params.yaml"
+    if node_namespace:
+        full_name = f"{node_namespace.rstrip('/')}/{node_name}"
+    else:
+        full_name = node_name
+    payload = {full_name: {"ros__parameters": params}}
+    with open(target_path, "w", encoding="utf-8") as config_file:
+        yaml.safe_dump(payload, config_file, sort_keys=False)
+    return str(target_path)
+
+
+def _maybe_scale_camera_info(parameters: Dict[str, Any], node_name: str) -> str | None:
+    camera_info_url = parameters.get("camera_info_url")
+    if not isinstance(camera_info_url, str) or not camera_info_url.strip():
+        return None
+    width = _coerce_int(parameters.get("image_width"))
+    height = _coerce_int(parameters.get("image_height"))
+    if not width or not height:
+        return None
+
+    base_url = (
+        parameters.get("camera_info_calibration_url")
+        or parameters.get("camera_info_base_url")
+        or camera_info_url
+    )
+    if not isinstance(base_url, str) or not base_url.strip():
+        return None
+
+    base_path = _resolve_camera_info_url(base_url)
+    if not base_path:
+        return None
+    base_info = _load_yaml_file(Path(base_path))
+    if not base_info:
+        return None
+
+    scaled_info = _scale_camera_info(base_info, width, height, parameters.get("camera_name") or node_name)
+    if not scaled_info:
+        return None
+
+    output_path = _resolve_camera_info_output_path(camera_info_url)
+    if not output_path:
+        output_path = _default_camera_info_path(node_name, width, height)
+
+    existing_info = _load_yaml_file(Path(output_path)) if Path(output_path).exists() else {}
+    if existing_info and _camera_info_equivalent(existing_info, scaled_info):
+        return _format_camera_info_url(output_path)
+
+    scaled_path = _write_camera_info_file(scaled_info, node_name, width, height, output_path)
+    return _format_camera_info_url(scaled_path) if scaled_path else None
+
+
+def _coerce_int(value: Any) -> int | None:
+    try:
+        return int(value)
+    except (TypeError, ValueError):
+        return None
+
+
+def _resolve_camera_info_url(url: str) -> str | None:
+    if not url:
+        return None
+    if url.startswith("package://"):
+        remainder = url[len("package://") :]
+        if "/" not in remainder:
+            return None
+        pkg_name, rel_path = remainder.split("/", 1)
+        try:
+            pkg_share = get_package_share_directory(pkg_name)
+        except (LookupError, ValueError):
+            return None
+        return str(Path(pkg_share) / rel_path)
+    if url.startswith("file://"):
+        return url[len("file://") :]
+    return _resolve_config_path(url)
+
+
+def _format_camera_info_url(path: str) -> str:
+    return f"file://{path}"
+
+
+def _scale_camera_info(
+    base_info: Dict[str, Any], width: int, height: int, camera_name: str | None
+) -> Dict[str, Any] | None:
+    base_width = _coerce_int(base_info.get("image_width"))
+    base_height = _coerce_int(base_info.get("image_height"))
+    if not base_width or not base_height:
+        return None
+    if base_width <= 0 or base_height <= 0:
+        return None
+
+    scale_x = float(width) / float(base_width)
+    scale_y = float(height) / float(base_height)
+
+    scaled = deepcopy(base_info)
+    scaled["image_width"] = int(width)
+    scaled["image_height"] = int(height)
+    if camera_name:
+        scaled["camera_name"] = camera_name
+
+    camera_matrix = scaled.get("camera_matrix")
+    if isinstance(camera_matrix, dict):
+        scaled["camera_matrix"] = _scale_camera_matrix(camera_matrix, scale_x, scale_y)
+
+    projection_matrix = scaled.get("projection_matrix")
+    if isinstance(projection_matrix, dict):
+        scaled["projection_matrix"] = _scale_projection_matrix(projection_matrix, scale_x, scale_y)
+
+    return scaled
+
+
+def _scale_camera_matrix(matrix_entry: Dict[str, Any], scale_x: float, scale_y: float) -> Dict[str, Any]:
+    data = matrix_entry.get("data")
+    if not isinstance(data, list) or len(data) < 9:
+        return matrix_entry
+    scaled_data = list(data)
+    scaled_data[0] = scaled_data[0] * scale_x
+    scaled_data[2] = scaled_data[2] * scale_x
+    scaled_data[4] = scaled_data[4] * scale_y
+    scaled_data[5] = scaled_data[5] * scale_y
+    updated = dict(matrix_entry)
+    updated["data"] = scaled_data
+    return updated
+
+
+def _scale_projection_matrix(matrix_entry: Dict[str, Any], scale_x: float, scale_y: float) -> Dict[str, Any]:
+    data = matrix_entry.get("data")
+    if not isinstance(data, list) or len(data) < 12:
+        return matrix_entry
+    scaled_data = list(data)
+    scaled_data[0] = scaled_data[0] * scale_x
+    scaled_data[2] = scaled_data[2] * scale_x
+    scaled_data[3] = scaled_data[3] * scale_x
+    scaled_data[5] = scaled_data[5] * scale_y
+    scaled_data[6] = scaled_data[6] * scale_y
+    updated = dict(matrix_entry)
+    updated["data"] = scaled_data
+    return updated
+
+
+def _camera_info_equivalent(left: Any, right: Any, atol: float = 1e-9) -> bool:
+    if isinstance(left, dict) and isinstance(right, dict):
+        if left.keys() != right.keys():
+            return False
+        return all(_camera_info_equivalent(left[key], right[key], atol) for key in left)
+    if isinstance(left, list) and isinstance(right, list):
+        if len(left) != len(right):
+            return False
+        return all(_camera_info_equivalent(lv, rv, atol) for lv, rv in zip(left, right))
+    if isinstance(left, (int, float)) and isinstance(right, (int, float)):
+        return abs(float(left) - float(right)) <= atol
+    return left == right
+
+
+def _default_camera_info_path(node_name: str, width: int, height: int) -> str:
+    ros_home = Path(os.environ.get("ROS_HOME", str(Path.home() / ".ros")))
+    target_dir = ros_home / "camera_info"
+    target_dir.mkdir(parents=True, exist_ok=True)
+    safe_name = "".join(ch if ch.isalnum() or ch in ("-", "_") else "_" for ch in node_name)
+    target_path = target_dir / f"{safe_name}_{width}x{height}.yaml"
+    return str(target_path)
+
+
+def _resolve_camera_info_output_path(url: str) -> str | None:
+    if not url:
+        return None
+    if url.startswith("package://"):
+        return None
+    if url.startswith("file://"):
+        return url[len("file://") :]
+    resolved = _resolve_config_path(url)
+    return resolved
+
+
+def _write_camera_info_file(
+    camera_info: Dict[str, Any], node_name: str, width: int, height: int, output_path: str
+) -> str | None:
+    target_path = Path(output_path)
+    if not target_path.parent.exists():
+        target_path.parent.mkdir(parents=True, exist_ok=True)
+    with open(target_path, "w", encoding="utf-8") as config_file:
+        yaml.safe_dump(camera_info, config_file, sort_keys=False)
+    return str(target_path)
 
 
 def _resolve_config_path(path_str: str | None) -> str | None:
@@ -1166,6 +1715,29 @@ def _namespace_frame_ids(parameters: List[Any], global_namespace: str) -> List[A
     return [_apply_frame_id_namespace(entry, global_namespace) for entry in parameters]
 
 
+def _extract_gpio_pullups(parameters: Dict[str, Any]) -> tuple[str, List[int]]:
+    gpio_chip = parameters.get("gpio_chip", "gpiochip0")
+    switches = parameters.get("switches", [])
+    pullup_lines: List[int] = []
+    default_pullup = bool(parameters.get("use_internal_pullup", False))
+    default_line = parameters.get("gpio_line", 4)
+
+    if isinstance(switches, list) and switches:
+        for name in switches:
+            pullup = parameters.get(f"switches.{name}.pullup", default_pullup)
+            if not pullup:
+                continue
+            line = parameters.get(f"switches.{name}.gpio_line", default_line)
+            if isinstance(line, int):
+                pullup_lines.append(line)
+    else:
+        if default_pullup and isinstance(default_line, int):
+            pullup_lines.append(default_line)
+
+    unique_lines = sorted(set(pullup_lines))
+    return str(gpio_chip), unique_lines
+
+
 def _namespace_lifecycle_node_names(parameters: List[Any], global_namespace: str) -> List[Any]:
     if not global_namespace or not parameters:
         return parameters
@@ -1197,6 +1769,8 @@ def _apply_frame_id_namespace(entry: Any, global_namespace: str) -> Any:
                 updated[key] = value
             elif _is_frame_reference_key(key):
                 updated[key] = _namespaced_frame_id(global_namespace, value)
+            elif _is_service_key(key):
+                updated[key] = _namespaced_topic(global_namespace, value)
             elif _is_topic_key(key):
                 updated[key] = _namespaced_topic(global_namespace, value)
             else:
@@ -1281,6 +1855,13 @@ def _is_topic_key(key: Any) -> bool:
         if lowered.startswith(prefix) and lowered[len(prefix) :].isdigit():
             return True
     return False
+
+
+def _is_service_key(key: Any) -> bool:
+    if not isinstance(key, str):
+        return False
+    lowered = key.lower()
+    return lowered.endswith("_service") or lowered.endswith("_service_name") or lowered == "service_name"
 
 
 def _is_frame_reference_key(key: Any) -> bool:

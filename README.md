@@ -100,23 +100,19 @@ ros2 launch robot_main robot_main.launch.py
 
 The SMACC2 node publishes its transitions through the normal SMACC2 introspection topics, so you can visualize the graph in SMACC Viewer while testing. Customize `StReset` later to add the reset reactions you need—the hooks are already in place. If you'd rather specify yaw angles in degrees, set `waypoint_angles_in_degrees` to `true` (as above) and the SMACC2 node will convert each value to radians before building the quaternion.
 
-## Limit switch calibration state machines
+## Limit switch calibration
 
-The `limit_switch_calibration` package adds a flexible ROS 2 node that pushes the robot against walls with the four new limit switches, performs the requested motions, and hard-sets the pose in `robot_localization` when the scripted sequence reaches completion. Runtime topics/services (including `front_switch_topic`, `back_switch_topic`, `left_switch_topic`, `right_switch_topic`, and `cmd_vel_topic`) plus the path to the sequence file are configured in `config/limit_switch_calibration.yaml`, while the actual calibration routines live in `config/limit_switch_sequences.yaml`. This keeps the ROS 2 parameter file simple (so it can be loaded through `ros2 run ... --params-file`) while still letting you describe rich state machines in YAML.
+The `limit_switch_calibration` package exposes an action-driven calibration flow. Send a goal with a `directions` array (one or two of `front|back|left|right`) plus the pose (`frame_id`, `x`, `y`, `yaw_deg`). The node moves in sequence until each matching limit switch is pressed or the timeout expires, then calls `robot_localization/SetPose` on success and emits SMACC events.
 
-Start a routine by publishing the desired machine ID on the `limit_switch_calibration/start` topic:
+Example action goal:
 
 ```bash
-ros2 topic pub --once limit_switch_calibration/start std_msgs/String '{data: "front_wall_touch"}'
+ros2 action send_goal /limit_switch_calibration \
+  limit_switch_calibration_msgs/action/LimitSwitchCalibration \
+  "{directions: ['left','front'], frame_id: 'map', x: 0.1651, y: 0.8636, yaw_deg: 90.0}"
 ```
 
-The node sequences three kinds of steps:
-
-- **Conditions** wait for any/all switch states (`front_pressed`, `back_released`, etc.) or a pure timer. Provide `timeout_sec` to bound how long the wait lasts and optional `duration_sec` for the timer condition. Combine multiple conditions with `any_of`/`all_of` lists.
-- **Movements** stream a constant velocity for a fixed duration. Specify `velocity_x` for forward/back motion, `velocity_y` for strafing, and `duration_sec` to hold the twist command. The node automatically publishes a zero twist when the timer expires.
-- **Actions** currently support `set_pose` (call `robot_localization/SetPose` with the configured pose) and `terminate` (emit a SMACC2 event to report success/failure and stop the machine). The `pose` dictionary accepts `frame_id`, `x`, `y`, `yaw`/`yaw_deg`, and `covariance_diagonal` entries so you can feed the exact alignment you expect after touching the walls.
-
-Multiple machines can coexist in `config/limit_switch_sequences.yaml`, each under its own ID. The example file ships two sequences: `front_wall_touch` drives forward until the front switch fires, sets the pose to `(0, 0, 0)`, and emits `CALIBRATION_SUCCESS`. `box_corner_square` demonstrates a richer script that strafes left, waits for both front/back switches, pauses with the timer condition, and then localizes with a 90° yaw. Adjust or add new machines to match your calibration steps; the node simply executes the ordered list of conditions, movements, and actions you supply. Point `state_machine_file` at an alternative YAML file when you want to swap in a different set of routines.
+Tune the behavior in `config/limit_switch_calibration.yaml` (switch topics, `linear_x_speed`, `linear_y_speed`, `direction_timeout_sec`, `pose_covariance_diagonal`, `cmd_vel_topic`, and `action_name`).
 
 ## OpenCR ros2_control hardware plugin
 

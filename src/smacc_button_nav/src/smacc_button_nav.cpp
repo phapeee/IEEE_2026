@@ -782,8 +782,7 @@ void StWaypointWait::onEntry()
       auto send_goal_options =
         rclcpp_action::Client<LimitSwitchCalibration>::SendGoalOptions();
       send_goal_options.goal_response_callback =
-        [this](const auto & future) {
-          auto goal_handle = future.get();
+        [this](const rclcpp_action::ClientGoalHandle<LimitSwitchCalibration>::SharedPtr & goal_handle) {
           if (!goal_handle)
           {
             RCLCPP_WARN(
@@ -797,7 +796,7 @@ void StWaypointWait::onEntry()
       send_goal_options.feedback_callback =
         [this](
           rclcpp_action::ClientGoalHandle<LimitSwitchCalibration>::SharedPtr,
-          const LimitSwitchCalibration::Feedback::SharedPtr feedback) {
+          const std::shared_ptr<const LimitSwitchCalibration::Feedback> & feedback) {
           if (!feedback) {
             return;
           }

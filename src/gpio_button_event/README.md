@@ -54,7 +54,7 @@ You can remap or override any of the parameters defined in `launch/gpio_button_e
 | Name | Type | Default | Description |
 |------|------|---------|-------------|
 | `backend` | `string` | `gpiod` | Only `gpiod` is supported (the value is kept for backwards compatibility). |
-| `gpio_chip` | `string` | `gpiochip0` | GPIOD chip name when `gpiod` backend is active. Ignored for sysfs. |
+| `gpio_chip` | `string` | `gpiochip4` if present, else `gpiochip0` | GPIOD chip name when `gpiod` backend is active. Ignored for sysfs. |
 | `gpio_line` | `int` | `4` | GPIO line number to monitor when only one switch is configured. |
 | `active_low` | `bool` | `false` | Treats logic low as pressed. |
 | `use_internal_pullup` | `bool` | `false` | Requests the kernel to enable the internal pull-up (overridable per switch). |
