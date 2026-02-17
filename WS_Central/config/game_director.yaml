@@ -1,0 +1,12 @@
+game_director:
+  ros__parameters:
+    # Toggle BOOT checks by adding/removing entries from this list.
+    boot_validation_requirements: []
+      # - dispatch_states_publisher
+      # - task_summaries_publisher
+      # - task_api_requests_subscriber
+      # - expected_robots_seen
+      # - expected_robots_online
+      # - valid_robot_maps
+      # - finite_robot_pose
+      # - sane_battery_values

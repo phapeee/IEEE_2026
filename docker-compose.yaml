@@ -1,0 +1,98 @@
+x-ros2-env: &ros2-env
+  ROS_DISTRO: jazzy
+  ROS_DOMAIN_ID: 42
+  AUTHORIZED_KEYS: ${AUTHORIZED_KEYS:-}
+  WS_CENTRAL: ${WS_CENTRAL:-/home/ubuntu/WS_Central}
+  WS_MINI_BOT: ${WS_MINI_BOT:-/home/ubuntu/WS_Mini_Bot}
+  WS_DRONE: ${WS_DRONE:-/home/ubuntu/WS_Drone}
+
+x-ros2-jazzy-ssh: &ros2-jazzy-ssh
+  build:
+    context: .
+    dockerfile: docker/ros2-jazzy-ssh-arm64.Dockerfile
+    args:
+      ROS_DISTRO: jazzy
+  platform: linux/arm64
+  working_dir: /home/ubuntu
+  environment: *ros2-env
+  tty: true
+  stdin_open: true
+  restart: unless-stopped
+
+services:
+  central:
+    <<: *ros2-jazzy-ssh
+    container_name: central
+    hostname: central
+    networks:
+      central_uplink:
+        ipv4_address: 10.42.0.87
+      bot_lan:
+        ipv4_address: 192.168.50.86
+
+  bot_keypad:
+    <<: *ros2-jazzy-ssh
+    container_name: bot_keypad
+    hostname: bot_keypad
+    environment:
+      <<: *ros2-env
+      SSH_ALLOW_FROM: "192.168.50.86"
+    depends_on:
+      - central
+    networks:
+      bot_lan:
+        ipv4_address: 192.168.50.51
+
+  bot_button:
+    <<: *ros2-jazzy-ssh
+    container_name: bot_button
+    hostname: bot_button
+    environment:
+      <<: *ros2-env
+      SSH_ALLOW_FROM: "192.168.50.86"
+    depends_on:
+      - central
+    networks:
+      bot_lan:
+        ipv4_address: 192.168.50.55
+
+  bot_rotary:
+    <<: *ros2-jazzy-ssh
+    container_name: bot_rotary
+    hostname: bot_rotary
+    environment:
+      <<: *ros2-env
+      SSH_ALLOW_FROM: "192.168.50.86"
+    depends_on:
+      - central
+    networks:
+      bot_lan:
+        ipv4_address: 192.168.50.53
+
+  bot_crater:
+    <<: *ros2-jazzy-ssh
+    container_name: bot_crater
+    hostname: bot_crater
+    environment:
+      <<: *ros2-env
+      SSH_ALLOW_FROM: "192.168.50.86"
+    depends_on:
+      - central
+    networks:
+      bot_lan:
+        ipv4_address: 192.168.50.54
+
+networks:
+  central_uplink:
+    name: sim_central_uplink
+    driver: bridge
+    ipam:
+      config:
+        - subnet: 10.42.0.0/24
+
+  bot_lan:
+    name: sim_bot_lan
+    driver: bridge
+    ipam:
+      config:
+        - subnet: 192.168.50.0/24

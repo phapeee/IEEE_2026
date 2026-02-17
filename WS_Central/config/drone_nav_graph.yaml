@@ -1,0 +1,5 @@
+levels:
+  AIR:
+    vertices:
+      - [0.0, 0.0, {name: "HOME", is_parking_spot: true, is_charger: true}]
+    lanes: []

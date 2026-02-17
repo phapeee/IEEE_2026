@@ -1,0 +1,11 @@
+# Goal
+uint64 command_id
+string category
+string description_json
+---
+# Result
+bool success
+string message
+---
+# Feedback
+string status

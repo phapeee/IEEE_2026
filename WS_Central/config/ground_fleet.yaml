@@ -1,0 +1,83 @@
+rmf_fleet:
+  name: "ground"
+  limits:
+    linear: [0.6, 1.0]
+    angular: [1.0, 2.0]
+  profile:
+    footprint: 0.2
+    vicinity: 0.3
+  reversible: true
+  battery_system:
+    voltage: 12.0
+    capacity: 10.0
+    charging_current: 2.0
+  mechanical_system:
+    mass: 8.0
+    moment_of_inertia: 1.0
+    friction_coefficient: 0.22
+  ambient_system:
+    power: 10.0
+  tool_system:
+    power: 10.0
+  recharge_threshold: 0.15
+  recharge_soc: 1.0
+  publish_fleet_state: 10.0
+  account_for_battery_drain: false
+  task_capabilities:
+    loop: false
+    delivery: false
+    clean: false
+  actions:
+    - deploy
+    - activate_antenna
+    - pickup_duck
+    - drop_duck
+    - crater_lap_leader
+    - crater_lap_follower
+    - dock
+  finishing_request: "nothing"
+  retreat_to_charger_interval: null
+  robots:
+    bot_keypad: {}
+    bot_button: {charger: "r1_home"}
+    bot_rotary: {}
+    bot_crater: {}
+
+fleet_manager:
+  robot_state_topic: "/ieee_fleet/robot_state"
+  command_action: "execute_command"
+  action_server_wait_timeout: 2.0
+  command_timeout: 5.0
+  use_robot_namespace: true
+  robot_state_update_frequency: 10.0
+  debug: false
+  state_stale_threshold_sec: 2.0
+  battery_fallback_soc: 1.0
+  low_battery_threshold: 0.2
+  enable_battery_gating: false
+  critical_action_categories: []
+  action_timeouts:
+    activate_antenna: 5.0
+    pickup_duck: 15.0
+    drop_duck: 10.0
+    crater_lap_leader: 60.0
+    crater_lap_follower: 60.0
+    deploy: 20.0
+    dock: 20.0
+  required_action_keys:
+    deploy: ["site"]
+    activate_antenna: ["antenna_id"]
+    pickup_duck: ["pickup_zone"]
+    drop_duck: ["drop_zone"]
+    crater_lap_leader: ["lap_count"]
+    crater_lap_follower: ["leader_id"]
+    dock: ["dock"]
+  default_action_timeout_sec: 30.0
+  navigate_timeout_base_sec: 5.0
+  navigate_timeout_per_meter_sec: 3.0
+  navigate_timeout_min_sec: 10.0
+  navigate_timeout_max_sec: 300.0
+  retry_backoff_sec: 1.0
+  health_topic: "/ieee_fleet/adapter_health"
+  health_publish_period_sec: 2.0
+  metrics_publish_period_sec: 30.0

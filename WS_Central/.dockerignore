@@ -1,0 +1,10 @@
+# Keep build context minimal to speed up every rebuild.
+**
+
+# Files required for this image build.
+!Dockerfile
+!.dockerignore
+!src/
+src/**
+!src/**/
+!src/**/package.xml

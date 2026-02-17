@@ -1,0 +1,9 @@
+builtin_interfaces/Time stamp
+string robot_name
+string map_name
+float64 x
+float64 y
+float64 yaw
+float32 battery_soc
+uint64 last_completed_request
+bool requires_replan

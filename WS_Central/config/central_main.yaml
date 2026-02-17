@@ -1,0 +1,36 @@
+namespace: ""
+
+components:
+  rmf_stack:
+    enabled: true
+    use_sim_time: false
+    startup_delay_sec: 2.0
+    schedule:
+      enabled: true
+    dispatcher:
+      enabled: true
+    fleet_adapters:
+      enabled: true
+      # server_uri: "ws://localhost:8000/_internal"
+      ground:
+        enabled: true
+      drone:
+        enabled: true
+
+  game_initiator:
+    enabled: true
+    package: game_initiator
+    executable: game_initiator_node
+    name: game_initiator
+    params_file: "game_initiator.yaml"
+    output: screen
+
+  game_director:
+    enabled: true
+    package: game_director
+    executable: game_director
+    name: game_director
+    params_file: "game_director.yaml"
+    ros__parameters:
+      task_pool_path: "task_pool.yaml"
+    output: screen

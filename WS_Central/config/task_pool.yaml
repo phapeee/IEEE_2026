@@ -1,0 +1,786 @@
+settings:
+  requester: game_director
+  tick_period_sec: 0.5
+  boot_wait_sec: 15.0
+  stale_robot_timeout_sec: 2.5
+  min_battery_soc: 0.2
+  major_inflight_limit_per_robot: 1
+  micro_inflight_limit_per_robot: 1
+  failure_degrade_threshold: 3
+  match_duration_sec: 600.0
+  queued_timeout_default_sec: 30.0
+  running_timeout_default_sec: 120.0
+  api_response_timeout_sec: 8.0
+  cancel_retry_period_sec: 5.0
+  cancel_timeout_sec: 45.0
+
+world:
+  antennas:
+    A1: UNKNOWN
+    A2: UNKNOWN
+    A3: UNKNOWN
+    A4: UNKNOWN
+  ducks: [D1, D2, D3, D4, D5]
+  crater_pair: [bot_button, bot_keypad]
+  drop_zone: drop_zone
+  # expected_ground_robots: [bot_button, bot_keypad, bot_rotary, bot_crater]
+  expected_ground_robots: [bot_button]
+  # expected_drone_robots: [drone1]
+  expected_drone_robots: []
+
+tasks:
+  - id: activate_antenna_a1
+    type: ACTIVATE_ANTENNA
+    phase: GAME_START
+    target:
+      antenna_id: A1
+      staging_waypoint: antenna_button
+    preconditions:
+      - kind: robot_online
+        robot: bot_button
+    dismiss_conditions:
+      - kind: antenna_state_in
+        antenna_id: A1
+        states: [ACTIVATED, ATTEMPTED_FAILED]
+    success_conditions:
+      - kind: antenna_state_in
+        antenna_id: A1
+        states: [ACTIVATED]
+    lock_keys: ['antenna:A1']
+    priority:
+      base: 200.0
+      deadline_boost_per_sec: 0.001
+    retry:
+      max_attempts: 3
+      backoff_sec: 3.0
+    timeouts:
+      queued_sec: 20.0
+      running_sec: 45.0
+    preferred_robots: [bot_button]
+    dispatch:
+      mode: robot_targeted
+      fleet: ground
+      robot: bot_button
+      request:
+        category: compose
+        description:
+          category: activate_antenna
+          phases:
+            - activity:
+                category: sequence
+                description:
+                  activities:
+                    - category: go_to_place
+                      description: "{{staging_waypoint}}"
+                    - category: perform_action
+                      description:
+                        unix_millis_action_duration_estimate: 10000
+                        category: activate_antenna
+                        description:
+                          antenna_id: "{{antenna_id}}"
+                          duration_sec: 4.0
+
+
+  # - id: activate_antenna_a2
+  #   type: ACTIVATE_ANTENNA
+  #   phase: GAME_START
+  #   target:
+  #     antenna_id: A2
+  #     staging_waypoint: antenna
+  #   preconditions:
+  #     - kind: any_ground_robot_available
+  #   dismiss_conditions:
+  #     - kind: antenna_state_in
+  #       antenna_id: A2
+  #       states: [ACTIVATED, ATTEMPTED_FAILED]
+  #   success_conditions:
+  #     - kind: antenna_state_in
+  #       antenna_id: A2
+  #       states: [ACTIVATED]
+  #   lock_keys: ['antenna:A2']
+  #   priority:
+  #     base: 190.0
+  #     deadline_boost_per_sec: 0.001
+  #   retry:
+  #     max_attempts: 3
+  #     backoff_sec: 3.0
+  #   timeouts:
+  #     queued_sec: 20.0
+  #     running_sec: 45.0
+  #   preferred_robots: [bot_keypad, bot_rotary, bot_crater, bot_button]
+  #   dispatch:
+  #     mode: best_available
+  #     fleet: ground
+  #     request:
+  #       category: compose
+  #       description:
+  #         category: activate_antenna
+  #         phases:
+  #           - activity:
+  #               category: sequence
+  #               description:
+  #                 activities:
+  #                   - category: go_to_place
+  #                     description: "{{staging_waypoint}}"
+  #                   - category: perform_action
+  #                     description:
+  #                       unix_millis_action_duration_estimate: 10000
+  #                       category: activate_antenna
+  #                       description:
+  #                         antenna_id: "{{antenna_id}}"
+  #                         duration_sec: 4.0
+
+  # - id: activate_antenna_a3
+  #   type: ACTIVATE_ANTENNA
+  #   phase: GAME_START
+  #   target:
+  #     antenna_id: A3
+  #     staging_waypoint: antenna
+  #   preconditions:
+  #     - kind: any_ground_robot_available
+  #   dismiss_conditions:
+  #     - kind: antenna_state_in
+  #       antenna_id: A3
+  #       states: [ACTIVATED, ATTEMPTED_FAILED]
+  #   success_conditions:
+  #     - kind: antenna_state_in
+  #       antenna_id: A3
+  #       states: [ACTIVATED]
+  #   lock_keys: ['antenna:A3']
+  #   priority:
+  #     base: 180.0
+  #     deadline_boost_per_sec: 0.001
+  #   retry:
+  #     max_attempts: 3
+  #     backoff_sec: 3.0
+  #   timeouts:
+  #     queued_sec: 20.0
+  #     running_sec: 45.0
+  #   preferred_robots: [bot_rotary, bot_crater, bot_button, bot_keypad]
+  #   dispatch:
+  #     mode: best_available
+  #     fleet: ground
+  #     request:
+  #       category: compose
+  #       description:
+  #         category: activate_antenna
+  #         phases:
+  #           - activity:
+  #               category: sequence
+  #               description:
+  #                 activities:
+  #                   - category: go_to_place
+  #                     description: "{{staging_waypoint}}"
+  #                   - category: perform_action
+  #                     description:
+  #                       unix_millis_action_duration_estimate: 10000
+  #                       category: activate_antenna
+  #                       description:
+  #                         antenna_id: "{{antenna_id}}"
+  #                         duration_sec: 4.0
+
+  # - id: activate_antenna_a4
+  #   type: ACTIVATE_ANTENNA
+  #   phase: GAME_START
+  #   target:
+  #     antenna_id: A4
+  #     staging_waypoint: antenna
+  #   preconditions:
+  #     - kind: any_ground_robot_available
+  #   dismiss_conditions:
+  #     - kind: antenna_state_in
+  #       antenna_id: A4
+  #       states: [ACTIVATED, ATTEMPTED_FAILED]
+  #   success_conditions:
+  #     - kind: antenna_state_in
+  #       antenna_id: A4
+  #       states: [ACTIVATED]
+  #   lock_keys: ['antenna:A4']
+  #   priority:
+  #     base: 170.0
+  #     deadline_boost_per_sec: 0.001
+  #   retry:
+  #     max_attempts: 3
+  #     backoff_sec: 3.0
+  #   timeouts:
+  #     queued_sec: 20.0
+  #     running_sec: 45.0
+  #   preferred_robots: [bot_crater, bot_button, bot_keypad, bot_rotary]
+  #   dispatch:
+  #     mode: best_available
+  #     fleet: ground
+  #     request:
+  #       category: compose
+  #       description:
+  #         category: activate_antenna
+  #         phases:
+  #           - activity:
+  #               category: sequence
+  #               description:
+  #                 activities:
+  #                   - category: go_to_place
+  #                     description: "{{staging_waypoint}}"
+  #                   - category: perform_action
+  #                     description:
+  #                       unix_millis_action_duration_estimate: 10000
+  #                       category: activate_antenna
+  #                       description:
+  #                         antenna_id: "{{antenna_id}}"
+  #                         duration_sec: 4.0
+
+  # - id: collect_duck_d1
+  #   type: COLLECT_DUCK
+  #   phase: GAME_START
+  #   target:
+  #     duck_id: D1
+  #     pickup_zone: duck_pickup_1
+  #     drop_zone: drop_zone
+  #   preconditions:
+  #     - kind: any_antenna_done
+  #     - kind: any_ground_robot_available
+  #   dismiss_conditions:
+  #     - kind: duck_state_in
+  #       duck_id: D1
+  #       states: [IN_DROP_ZONE]
+  #   success_conditions:
+  #     - kind: duck_state_in
+  #       duck_id: D1
+  #       states: [IN_DROP_ZONE]
+  #   lock_keys: ['duck:{{duck_id}}']
+  #   priority:
+  #     base: 120.0
+  #     deadline_boost_per_sec: 0.001
+  #     opportunistic_boost: 20.0
+  #   retry:
+  #     max_attempts: 5
+  #     backoff_sec: 4.0
+  #   timeouts:
+  #     queued_sec: 20.0
+  #     running_sec: 90.0
+  #   dispatch:
+  #     mode: best_available
+  #     fleet: ground
+  #     request:
+  #       category: compose
+  #       description:
+  #         category: collect_duck
+  #         phases:
+  #           - activity:
+  #               category: sequence
+  #               description:
+  #                 activities:
+  #                   - category: go_to_place
+  #                     description: "{{pickup_zone}}"
+  #                   - category: perform_action
+  #                     description:
+  #                       unix_millis_action_duration_estimate: 15000
+  #                       category: pickup_duck
+  #                       description:
+  #                         pickup_zone: "{{pickup_zone}}"
+  #                         duck_id: "{{duck_id}}"
+  #                   - category: go_to_place
+  #                     description: "{{drop_zone}}"
+  #                   - category: perform_action
+  #                     description:
+  #                       unix_millis_action_duration_estimate: 10000
+  #                       category: drop_duck
+  #                       description:
+  #                         drop_zone: "{{drop_zone}}"
+  #                         duck_id: "{{duck_id}}"
+
+  # - id: collect_duck_d2
+  #   type: COLLECT_DUCK
+  #   phase: GAME_START
+  #   target:
+  #     duck_id: D2
+  #     pickup_zone: duck_pickup_2
+  #     drop_zone: drop_zone
+  #   preconditions:
+  #     - kind: any_antenna_done
+  #     - kind: any_ground_robot_available
+  #   dismiss_conditions:
+  #     - kind: duck_state_in
+  #       duck_id: D2
+  #       states: [IN_DROP_ZONE]
+  #   success_conditions:
+  #     - kind: duck_state_in
+  #       duck_id: D2
+  #       states: [IN_DROP_ZONE]
+  #   lock_keys: ['duck:{{duck_id}}']
+  #   priority:
+  #     base: 115.0
+  #     deadline_boost_per_sec: 0.001
+  #     opportunistic_boost: 20.0
+  #   retry:
+  #     max_attempts: 5
+  #     backoff_sec: 4.0
+  #   timeouts:
+  #     queued_sec: 20.0
+  #     running_sec: 90.0
+  #   dispatch:
+  #     mode: best_available
+  #     fleet: ground
+  #     request:
+  #       category: compose
+  #       description:
+  #         category: collect_duck
+  #         phases:
+  #           - activity:
+  #               category: sequence
+  #               description:
+  #                 activities:
+  #                   - category: go_to_place
+  #                     description: "{{pickup_zone}}"
+  #                   - category: perform_action
+  #                     description:
+  #                       unix_millis_action_duration_estimate: 15000
+  #                       category: pickup_duck
+  #                       description:
+  #                         pickup_zone: "{{pickup_zone}}"
+  #                         duck_id: "{{duck_id}}"
+  #                   - category: go_to_place
+  #                     description: "{{drop_zone}}"
+  #                   - category: perform_action
+  #                     description:
+  #                       unix_millis_action_duration_estimate: 10000
+  #                       category: drop_duck
+  #                       description:
+  #                         drop_zone: "{{drop_zone}}"
+  #                         duck_id: "{{duck_id}}"
+
+  # - id: collect_duck_d3
+  #   type: COLLECT_DUCK
+  #   phase: GAME_START
+  #   target:
+  #     duck_id: D3
+  #     pickup_zone: duck_pickup_3
+  #     drop_zone: drop_zone
+  #   preconditions:
+  #     - kind: any_antenna_done
+  #     - kind: any_ground_robot_available
+  #   dismiss_conditions:
+  #     - kind: duck_state_in
+  #       duck_id: D3
+  #       states: [IN_DROP_ZONE]
+  #   success_conditions:
+  #     - kind: duck_state_in
+  #       duck_id: D3
+  #       states: [IN_DROP_ZONE]
+  #   lock_keys: ['duck:{{duck_id}}']
+  #   priority:
+  #     base: 110.0
+  #     deadline_boost_per_sec: 0.001
+  #     opportunistic_boost: 20.0
+  #   retry:
+  #     max_attempts: 5
+  #     backoff_sec: 4.0
+  #   timeouts:
+  #     queued_sec: 20.0
+  #     running_sec: 90.0
+  #   dispatch:
+  #     mode: best_available
+  #     fleet: ground
+  #     request:
+  #       category: compose
+  #       description:
+  #         category: collect_duck
+  #         phases:
+  #           - activity:
+  #               category: sequence
+  #               description:
+  #                 activities:
+  #                   - category: go_to_place
+  #                     description: "{{pickup_zone}}"
+  #                   - category: perform_action
+  #                     description:
+  #                       unix_millis_action_duration_estimate: 15000
+  #                       category: pickup_duck
+  #                       description:
+  #                         pickup_zone: "{{pickup_zone}}"
+  #                         duck_id: "{{duck_id}}"
+  #                   - category: go_to_place
+  #                     description: "{{drop_zone}}"
+  #                   - category: perform_action
+  #                     description:
+  #                       unix_millis_action_duration_estimate: 10000
+  #                       category: drop_duck
+  #                       description:
+  #                         drop_zone: "{{drop_zone}}"
+  #                         duck_id: "{{duck_id}}"
+
+  # - id: collect_duck_d4
+  #   type: COLLECT_DUCK
+  #   phase: GAME_START
+  #   target:
+  #     duck_id: D4
+  #     pickup_zone: duck_pickup_4
+  #     drop_zone: drop_zone
+  #   preconditions:
+  #     - kind: any_antenna_done
+  #     - kind: any_ground_robot_available
+  #   dismiss_conditions:
+  #     - kind: duck_state_in
+  #       duck_id: D4
+  #       states: [IN_DROP_ZONE]
+  #   success_conditions:
+  #     - kind: duck_state_in
+  #       duck_id: D4
+  #       states: [IN_DROP_ZONE]
+  #   lock_keys: ['duck:{{duck_id}}']
+  #   priority:
+  #     base: 105.0
+  #     deadline_boost_per_sec: 0.001
+  #     opportunistic_boost: 20.0
+  #   retry:
+  #     max_attempts: 5
+  #     backoff_sec: 4.0
+  #   timeouts:
+  #     queued_sec: 20.0
+  #     running_sec: 90.0
+  #   dispatch:
+  #     mode: best_available
+  #     fleet: ground
+  #     request:
+  #       category: compose
+  #       description:
+  #         category: collect_duck
+  #         phases:
+  #           - activity:
+  #               category: sequence
+  #               description:
+  #                 activities:
+  #                   - category: go_to_place
+  #                     description: "{{pickup_zone}}"
+  #                   - category: perform_action
+  #                     description:
+  #                       unix_millis_action_duration_estimate: 15000
+  #                       category: pickup_duck
+  #                       description:
+  #                         pickup_zone: "{{pickup_zone}}"
+  #                         duck_id: "{{duck_id}}"
+  #                   - category: go_to_place
+  #                     description: "{{drop_zone}}"
+  #                   - category: perform_action
+  #                     description:
+  #                       unix_millis_action_duration_estimate: 10000
+  #                       category: drop_duck
+  #                       description:
+  #                         drop_zone: "{{drop_zone}}"
+  #                         duck_id: "{{duck_id}}"
+
+  # - id: collect_duck_d5
+  #   type: COLLECT_DUCK
+  #   phase: GAME_START
+  #   target:
+  #     duck_id: D5
+  #     pickup_zone: duck_pickup_5
+  #     drop_zone: drop_zone
+  #   preconditions:
+  #     - kind: any_antenna_done
+  #     - kind: any_ground_robot_available
+  #   dismiss_conditions:
+  #     - kind: duck_state_in
+  #       duck_id: D5
+  #       states: [IN_DROP_ZONE]
+  #   success_conditions:
+  #     - kind: duck_state_in
+  #       duck_id: D5
+  #       states: [IN_DROP_ZONE]
+  #   lock_keys: ['duck:{{duck_id}}']
+  #   priority:
+  #     base: 100.0
+  #     deadline_boost_per_sec: 0.001
+  #     opportunistic_boost: 20.0
+  #   retry:
+  #     max_attempts: 5
+  #     backoff_sec: 4.0
+  #   timeouts:
+  #     queued_sec: 20.0
+  #     running_sec: 90.0
+  #   dispatch:
+  #     mode: best_available
+  #     fleet: ground
+  #     request:
+  #       category: compose
+  #       description:
+  #         category: collect_duck
+  #         phases:
+  #           - activity:
+  #               category: sequence
+  #               description:
+  #                 activities:
+  #                   - category: go_to_place
+  #                     description: "{{pickup_zone}}"
+  #                   - category: perform_action
+  #                     description:
+  #                       unix_millis_action_duration_estimate: 15000
+  #                       category: pickup_duck
+  #                       description:
+  #                         pickup_zone: "{{pickup_zone}}"
+  #                         duck_id: "{{duck_id}}"
+  #                   - category: go_to_place
+  #                     description: "{{drop_zone}}"
+  #                   - category: perform_action
+  #                     description:
+  #                       unix_millis_action_duration_estimate: 10000
+  #                       category: drop_duck
+  #                       description:
+  #                         drop_zone: "{{drop_zone}}"
+  #                         duck_id: "{{duck_id}}"
+
+  # - id: crater_lap_leader
+  #   type: CRATER_LAP_PAIR
+  #   phase: GAME_START
+  #   target:
+  #     role: leader
+  #     lap_count: 1
+  #     robot_name: bot_button
+  #   preconditions:
+  #     - kind: crater_token_free
+  #     - kind: robot_online
+  #       robot: bot_button
+  #     - kind: robot_online
+  #       robot: bot_keypad
+  #   dismiss_conditions: []
+  #   success_conditions: []
+  #   lock_keys: [crater_token]
+  #   priority:
+  #     base: 150.0
+  #     deadline_boost_per_sec: 0.001
+  #   retry:
+  #     max_attempts: 2
+  #     backoff_sec: 5.0
+  #   timeouts:
+  #     queued_sec: 20.0
+  #     running_sec: 120.0
+  #   dispatch:
+  #     mode: robot_targeted
+  #     fleet: ground
+  #     robot: bot_button
+  #     request:
+  #       category: compose
+  #       description:
+  #         category: crater_lap
+  #         phases:
+  #           - activity:
+  #               category: sequence
+  #               description:
+  #                 activities:
+  #                   - category: go_to_place
+  #                     description: crater_entry
+  #                   - category: perform_action
+  #                     description:
+  #                       unix_millis_action_duration_estimate: 60000
+  #                       category: crater_lap_leader
+  #                       description:
+  #                         lap_count: "{{lap_count}}"
+  #                   - category: go_to_place
+  #                     description: crater_exit
+
+  # - id: crater_lap_follower
+  #   type: CRATER_LAP_PAIR
+  #   phase: GAME_START
+  #   target:
+  #     role: follower
+  #     leader_id: bot_button
+  #     robot_name: bot_keypad
+  #   preconditions:
+  #     - kind: crater_token_free
+  #     - kind: robot_online
+  #       robot: bot_keypad
+  #     - kind: robot_online
+  #       robot: bot_button
+  #   dismiss_conditions: []
+  #   success_conditions: []
+  #   lock_keys: []
+  #   priority:
+  #     base: 149.0
+  #     deadline_boost_per_sec: 0.001
+  #   retry:
+  #     max_attempts: 2
+  #     backoff_sec: 5.0
+  #   timeouts:
+  #     queued_sec: 20.0
+  #     running_sec: 120.0
+  #   dispatch:
+  #     mode: robot_targeted
+  #     fleet: ground
+  #     robot: bot_keypad
+  #     request:
+  #       category: compose
+  #       description:
+  #         category: crater_lap
+  #         phases:
+  #           - activity:
+  #               category: sequence
+  #               description:
+  #                 activities:
+  #                   - category: go_to_place
+  #                     description: crater_entry
+  #                   - category: perform_action
+  #                     description:
+  #                       unix_millis_action_duration_estimate: 60000
+  #                       category: crater_lap_follower
+  #                       description:
+  #                         leader_id: "{{leader_id}}"
+  #                   - category: go_to_place
+  #                     description: crater_exit
+
+  # - id: drone_takeoff
+  #   type: DRONE_TAKEOFF
+  #   phase: GAME_START
+  #   target:
+  #     altitude_m: 1.0
+  #   preconditions:
+  #     - kind: all_antennas_terminal
+  #     - kind: any_drone_available
+  #   dismiss_conditions: []
+  #   success_conditions: []
+  #   priority:
+  #     base: 130.0
+  #   retry:
+  #     max_attempts: 2
+  #     backoff_sec: 3.0
+  #   timeouts:
+  #     queued_sec: 15.0
+  #     running_sec: 40.0
+  #   dispatch:
+  #     mode: robot_targeted
+  #     fleet: drone
+  #     robot: drone1
+  #     request:
+  #       category: compose
+  #       description:
+  #         category: drone_takeoff
+  #         phases:
+  #           - activity:
+  #               category: sequence
+  #               description:
+  #                 activities:
+  #                   - category: perform_action
+  #                     description:
+  #                       unix_millis_action_duration_estimate: 10000
+  #                       category: takeoff
+  #                       description:
+  #                         altitude_m: "{{altitude_m}}"
+
+  # - id: drone_scan_leds
+  #   type: DRONE_SCAN_LEDS
+  #   phase: GAME_START
+  #   target:
+  #     pattern: full_panel
+  #   preconditions:
+  #     - kind: task_done
+  #       task_id: drone_takeoff
+  #   depends_on: [drone_takeoff]
+  #   dependency_policy: require_done
+  #   on_dependency_failure: skip
+  #   dismiss_conditions: []
+  #   success_conditions: []
+  #   priority:
+  #     base: 125.0
+  #   retry:
+  #     max_attempts: 3
+  #     backoff_sec: 2.0
+  #   timeouts:
+  #     queued_sec: 15.0
+  #     running_sec: 40.0
+  #   dispatch:
+  #     mode: robot_targeted
+  #     fleet: drone
+  #     robot: drone1
+  #     request:
+  #       category: compose
+  #       description:
+  #         category: drone_scan
+  #         phases:
+  #           - activity:
+  #               category: sequence
+  #               description:
+  #                 activities:
+  #                   - category: perform_action
+  #                     description:
+  #                       unix_millis_action_duration_estimate: 20000
+  #                       category: scan_leds
+  #                       description:
+  #                         pattern: "{{pattern}}"
+
+  # - id: drone_send_ir
+  #   type: DRONE_SEND_IR
+  #   phase: GAME_START
+  #   target:
+  #     payload: scan_result
+  #   preconditions:
+  #     - kind: task_done
+  #       task_id: drone_scan_leds
+  #   depends_on: [drone_scan_leds]
+  #   dependency_policy: require_done
+  #   on_dependency_failure: skip
+  #   dismiss_conditions: []
+  #   success_conditions: []
+  #   priority:
+  #     base: 120.0
+  #   retry:
+  #     max_attempts: 3
+  #     backoff_sec: 2.0
+  #   timeouts:
+  #     queued_sec: 15.0
+  #     running_sec: 40.0
+  #   dispatch:
+  #     mode: robot_targeted
+  #     fleet: drone
+  #     robot: drone1
+  #     request:
+  #       category: compose
+  #       description:
+  #         category: drone_report
+  #         phases:
+  #           - activity:
+  #               category: sequence
+  #               description:
+  #                 activities:
+  #                   - category: perform_action
+  #                     description:
+  #                       unix_millis_action_duration_estimate: 10000
+  #                       category: send_ir
+  #                       description:
+  #                         payload: "{{payload}}"
+
+  # - id: drone_land
+  #   type: DRONE_LAND
+  #   phase: GAME_START
+  #   target: {}
+  #   preconditions:
+  #     - kind: task_terminal
+  #       task_id: drone_send_ir
+  #   depends_on: [drone_send_ir]
+  #   dependency_policy: require_terminal
+  #   on_dependency_failure: run_anyway
+  #   dismiss_conditions: []
+  #   success_conditions: []
+  #   priority:
+  #     base: 160.0
+  #   retry:
+  #     max_attempts: 3
+  #     backoff_sec: 2.0
+  #   timeouts:
+  #     queued_sec: 15.0
+  #     running_sec: 40.0
+  #   dispatch:
+  #     mode: robot_targeted
+  #     fleet: drone
+  #     robot: drone1
+  #     request:
+  #       category: compose
+  #       description:
+  #         category: drone_land
+  #         phases:
+  #           - activity:
+  #               category: sequence
+  #               description:
+  #                 activities:
+  #                   - category: perform_action
+  #                     description:
+  #                       unix_millis_action_duration_estimate: 10000
+  #                       category: land
+  #                       description: {}

@@ -1,0 +1,70 @@
+rmf_fleet:
+  name: "drone"
+  limits:
+    linear: [0.2, 0.5]
+    angular: [0.5, 1.0]
+  profile:
+    footprint: 0.15
+    vicinity: 0.25
+  reversible: false
+  battery_system:
+    voltage: 11.1
+    capacity: 5.0
+    charging_current: 1.0
+  mechanical_system:
+    mass: 2.0
+    moment_of_inertia: 0.3
+    friction_coefficient: 0.2
+  ambient_system:
+    power: 5.0
+  tool_system:
+    power: 5.0
+  recharge_threshold: 0.2
+  recharge_soc: 1.0
+  publish_fleet_state: 10.0
+  account_for_battery_drain: false
+  task_capabilities:
+    loop: false
+    delivery: false
+    clean: false
+  actions:
+    - takeoff
+    - scan_leds
+    - send_ir
+    - land
+  finishing_request: "nothing"
+  retreat_to_charger_interval: null
+  robots:
+    drone1: {charger: "HOME"}
+
+fleet_manager:
+  robot_state_topic: "/ieee_fleet/robot_state"
+  command_action: "execute_command"
+  action_server_wait_timeout: 2.0
+  command_timeout: 5.0
+  use_robot_namespace: true
+  robot_state_update_frequency: 10.0
+  debug: false
+  state_stale_threshold_sec: 2.0
+  battery_fallback_soc: 1.0
+  low_battery_threshold: 0.25
+  enable_battery_gating: false
+  critical_action_categories: []
+  action_timeouts:
+    takeoff: 10.0
+    scan_leds: 20.0
+    send_ir: 10.0
+    land: 15.0
+  required_action_keys:
+    takeoff: ["altitude_m"]
+    scan_leds: ["pattern"]
+    send_ir: ["payload"]
+  default_action_timeout_sec: 30.0
+  navigate_timeout_base_sec: 5.0
+  navigate_timeout_per_meter_sec: 3.0
+  navigate_timeout_min_sec: 10.0
+  navigate_timeout_max_sec: 120.0
+  retry_backoff_sec: 1.0
+  health_topic: "/ieee_fleet/adapter_health"
+  health_publish_period_sec: 2.0
+  metrics_publish_period_sec: 30.0

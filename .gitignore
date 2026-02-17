@@ -1,0 +1,70 @@
+# ROS 2 / colcon
+build/
+install/
+log/
+.colcon/
+
+# Packaging outputs
+dist/
+backup/
+
+# Prevent embedding nested git metadata from copied workspaces
+WS_*/.git
+WS_*/.git/
+
+# Python
+__pycache__/
+*.py[cod]
+*.pyd
+*.egg-info/
+.eggs/
+*.egg
+.venv/
+venv/
+.env/
+.env.*
+
+# Pytest / coverage / lint caches
+.pytest_cache/
+.coverage
+coverage.xml
+htmlcov/
+.nox/
+.tox/
+.mypy_cache/
+.ruff_cache/
+.pyre/
+
+# C/C++ build artifacts
+*.o
+*.a
+*.so
+*.dylib
+*.dll
+*.exe
+*.out
+*.pdb
+
+# Logs
+*.log
+*.log.*
+
+# ROS bags
+rosbag2_*/
+*.db3
+*.mcap
+
+# Editor / IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Misc
+*.bak
+*.tmp

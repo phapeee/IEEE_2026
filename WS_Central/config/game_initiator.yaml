@@ -1,0 +1,29 @@
+game_initiator:
+  ros__parameters:
+    backend: gpioget
+    gpio_chip: "gpiochip4"
+    polling_frequency_hz: 50.0
+    debounce_duration_ms: 30.0
+    start_service_name: "/game_director/start_game"
+    service_wait_timeout_sec: 1.0
+    service_call_cooldown_sec: 1.0
+    call_once_after_success: true
+    shutdown_on_success: false
+
+    # Prime internal pull-ups for lines marked with pullup=true.
+    prime_pullups: true
+    prime_pullups_script: "scripts/prime_gpio_pullups.sh"
+
+    inputs:
+      - start_button_a
+      - start_button_b
+
+    inputs.start_button_a.gpio_line: 17
+    inputs.start_button_a.active_low: true
+    inputs.start_button_a.pullup: true
+    inputs.start_button_a.trigger_on: "press"
+
+    inputs.start_button_b.gpio_line: 22
+    inputs.start_button_b.active_low: true
+    inputs.start_button_b.pullup: false
+    inputs.start_button_b.trigger_on: "press"
