@@ -209,15 +209,19 @@ set -euo pipefail
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 ROS_DISTRO="${ROS_DISTRO:-jazzy}"
 
-if ! command -v rosdep >/dev/null 2>&1; then
-  sudo apt-get update
-  sudo apt-get install -y python3-rosdep
-fi
+if [[ -d "${SCRIPT_DIR}/src" ]] && find "${SCRIPT_DIR}/src" -type f -name package.xml -print -quit | grep -q .; then
+  if ! command -v rosdep >/dev/null 2>&1; then
+    sudo apt-get update
+    sudo apt-get install -y python3-rosdep
+  fi
 
-sudo rosdep init 2>/dev/null || true
-rosdep update
-rosdep install --ignore-src --from-paths "${SCRIPT_DIR}/src" -y -r --rosdistro "${ROS_DISTRO}" \
-  --skip-keys "ament_python"
+  sudo rosdep init 2>/dev/null || true
+  rosdep update
+  rosdep install --ignore-src --from-paths "${SCRIPT_DIR}/src" -y -r --rosdistro "${ROS_DISTRO}" \
+    --skip-keys "ament_python"
+else
+  echo "No ROS package manifests found under ${SCRIPT_DIR}/src; skipping rosdep."
+fi
 SCRIPT
       if [[ -d "${ws_dir}/src/arducam_rclpy_tof_pointcloud" ]]; then
         cat <<'SCRIPT' >> "${out_dir}/install_deps.sh"
@@ -331,6 +335,32 @@ if [[ -f "${I2C_PLUGIN_LIB}" ]]; then
     echo "[ERROR] Check target ROS packages and rerun install_all.sh." >&2
     exit 1
   fi
+fi
+SCRIPT
+      fi
+      if [[ "${ws}" == "WS_LCD" ]]; then
+        cat <<'SCRIPT' >> "${out_dir}/install_deps.sh"
+
+# ST7789 runtime dependency.
+sudo apt-get update
+sudo apt-get install -y libbcm2835-dev
+
+# Enable Raspberry Pi SPI when not already enabled.
+SPI_CONFIG_FILE="/boot/firmware/config.txt"
+SPI_ENABLE_LINE="dtparam=spi=on"
+if [[ -f "${SPI_CONFIG_FILE}" ]]; then
+  if grep -Eq '^[[:space:]]*dtparam=spi=on([[:space:]]*(#.*)?)?$' "${SPI_CONFIG_FILE}"; then
+    echo "SPI already enabled in ${SPI_CONFIG_FILE}."
+  else
+    if grep -Eq '^[[:space:]]*#?[[:space:]]*dtparam=spi=' "${SPI_CONFIG_FILE}"; then
+      sudo sed -i -E 's|^[[:space:]]*#?[[:space:]]*dtparam=spi=.*$|dtparam=spi=on|' "${SPI_CONFIG_FILE}"
+    else
+      echo "${SPI_ENABLE_LINE}" | sudo tee -a "${SPI_CONFIG_FILE}" >/dev/null
+    fi
+    echo "Enabled SPI in ${SPI_CONFIG_FILE}. Reboot may be required."
+  fi
+else
+  echo "[WARN] ${SPI_CONFIG_FILE} not found; skipping SPI enable."
 fi
 SCRIPT
       fi

@@ -15,4 +15,5 @@ fi
 : "${SMACC2_IMAGE:=smacc2-ros2-${ROS_DISTRO}-arm64}"
 : "${IEEE_2026_IMAGE:=ieee-2026-ros2-${ROS_DISTRO}-arm64}"
 : "${IEEE_2026_CENTRAL_IMAGE:=ieee-2026-central-ros2-${ROS_DISTRO}-arm64}"
+: "${IEEE_2026_LCD_IMAGE:=ieee-2026-lcd-ros2-${ROS_DISTRO}-arm64}"
 : "${ARDUCAM_IMAGE:=arducam-ros2-${ROS_DISTRO}-arm64}"

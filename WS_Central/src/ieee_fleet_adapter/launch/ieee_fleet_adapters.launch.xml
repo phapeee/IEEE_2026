@@ -1,0 +1,24 @@
+<launch>
+  <arg name="use_sim_time" default="false" description="Use sim time for both fleet adapters"/>
+
+  <arg name="ground_config" default="$(find-pkg-share central_main)/config/ground_fleet.yaml"/>
+  <arg name="ground_graph" default="$(find-pkg-share central_main)/config/ground_nav_graph.yaml"/>
+  <arg name="drone_config" default="$(find-pkg-share central_main)/config/drone_fleet.yaml"/>
+  <arg name="drone_graph" default="$(find-pkg-share central_main)/config/drone_nav_graph.yaml"/>
+
+  <node pkg="ieee_fleet_adapter"
+        exec="fleet_adapter"
+        name="ground_fleet_adapter"
+        output="screen"
+        args="-c $(var ground_config) -n $(var ground_graph)">
+    <param name="use_sim_time" value="$(var use_sim_time)"/>
+  </node>
+
+  <node pkg="ieee_fleet_adapter"
+        exec="fleet_adapter"
+        name="drone_fleet_adapter"
+        output="screen"
+        args="-c $(var drone_config) -n $(var drone_graph)">
+    <param name="use_sim_time" value="$(var use_sim_time)"/>
+  </node>
+</launch>

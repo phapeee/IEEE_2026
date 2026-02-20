@@ -1,7 +1,9 @@
 game_director:
   ros__parameters:
-    # Toggle BOOT checks by adding/removing entries from this list.
-    boot_validation_requirements: []
+    # Empty arrays ([]) can fail to parse on some ROS 2 distros.
+    # Use one of: none|off|disable_all to disable all BOOT checks.
+    boot_validation_requirements:
+      - none
       # - dispatch_states_publisher
       # - task_summaries_publisher
       # - task_api_requests_subscriber

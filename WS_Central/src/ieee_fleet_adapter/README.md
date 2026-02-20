@@ -1,10 +1,10 @@
 # IEEE 2026 Fleet Adapters
 
 This package provides two RMF fleet adapter instances (ground and drone) using
-`rmf_adapter.easy_full_control` with `perform_action` support. Each adapter
-bridges RMF to robot/drone command endpoints via a ROS 2 action server
-(`ieee_fleet_msgs/action/ExecuteCommand`) and consumes robot state updates from
-`ieee_fleet_msgs/msg/RobotState`.
+the C++ `rmf_fleet_adapter::agv::EasyFullControl` API with `perform_action`
+support. Each adapter bridges RMF to robot/drone command endpoints via a ROS 2
+action server (`ieee_fleet_msgs/action/ExecuteCommand`) and consumes robot
+state updates from `ieee_fleet_msgs/msg/RobotState`.
 
 Contract details: `ADAPTER_CONTRACT.md`.
 
@@ -13,7 +13,7 @@ Contract details: `ADAPTER_CONTRACT.md`.
 Launch both adapters:
 
 ```bash
-ros2 launch ieee_fleet_adapter ieee_fleet_adapters.launch.py
+ros2 launch ieee_fleet_adapter ieee_fleet_adapters.launch.xml
 ```
 
 Run one adapter manually:

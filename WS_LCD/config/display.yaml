@@ -1,0 +1,27 @@
+st7789_display_node:
+  ros__parameters:
+    spi_device: "/dev/spidev0.0"
+    spi_speed_hz: 32000000
+    spi_mode: 0
+    spi_bits_per_word: 8
+    gpiochip: "gpiochip4"
+    dc_gpio: 13
+    rst_gpio: 16
+    bl_gpio: 26
+    use_threads: false
+    frame_queue_capacity: 3
+    rotation_degrees: 90
+    color_order_bgr: false
+    display_inversion: true
+    x_offset: 20
+    y_offset: 0
+    render_hz: 15.0
+    fit_image_to_screen: true
+    use_dirty_rects: true
+    dirty_rect_full_frame_threshold: 0.35
+    clear_before_text: true
+    text_x: 8
+    text_y: 8
+    text_scale: 2
+    text_color_rgb565: 65535
+    clear_color_rgb565: 0

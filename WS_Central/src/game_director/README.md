@@ -18,12 +18,7 @@ Path: `WS_Central/src/game_director`
 
 Important files:
 
-- `game_director/director_node.py`: main ROS 2 node (`GameDirector`)
-- `game_director/world_model.py`: aggregated game/robot state model
-- `game_director/task_pool.py`: YAML loader + schema parsing
-- `game_director/models.py`: enums + dataclasses for runtime state
-- `game_director/dispatch_client.py`: RMF API request/response client
-- `game_director/dispatch_tracker.py`: RMF dispatch/task summary snapshots
+- `src/game_director_node.cpp`: main ROS 2 node (`GameDirector`) and runtime logic
 - `config/task_pool.yaml`: default mission plan (15 tasks)
 - `launch/game_director.launch.py`: launch entrypoint
 
@@ -99,6 +94,9 @@ Declared by `GameDirector`:
   - `valid_robot_maps`
   - `finite_robot_pose`
   - `sane_battery_values`
+  Special values:
+  - `none` (or `off`, `disable_all`) disables all BOOT checks.
+  Note: prefer these sentinels instead of `[]`, because empty arrays can fail ROS 2 parameter parsing on some distros.
 
 - `robot_state_topic` (string, default `/ieee_fleet/robot_state`)
 - `external_event_topic` (string, default `/game_director/events`)
@@ -606,14 +604,14 @@ Recommended way to adapt behavior:
 2. Validate condition logic and lock keys for deadlock/race risk.
 3. Validate robot naming and fleet naming align with your adapter.
 4. Use `/game_director/status` while testing to confirm lifecycle transitions.
-5. Only change Python logic when YAML-level policy is insufficient.
+5. Only change C++ logic when YAML-level policy is insufficient.
 
 When adding a new task type:
 
 1. Add task(s) in YAML.
 2. Ensure adapters understand the `perform_action` category/description used.
 3. Add/adjust world model success/failure side-effects if needed.
-4. Add condition kinds in `director_node.py` only if existing kinds are insufficient.
+4. Add condition kinds in `src/game_director_node.cpp` only if existing kinds are insufficient.
 
 ## 18) Known Implementation Notes
 

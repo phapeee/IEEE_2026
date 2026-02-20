@@ -70,8 +70,6 @@ tasks:
                 category: sequence
                 description:
                   activities:
-                    - category: go_to_place
-                      description: "{{staging_waypoint}}"
                     - category: perform_action
                       description:
                         unix_millis_action_duration_estimate: 10000

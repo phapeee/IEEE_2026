@@ -2,7 +2,7 @@
 
 `game_initiator` monitors one or more GPIO inputs and calls the game director
 `start_game` service (`std_srvs/srv/Trigger`) whenever a configured trigger edge
-is detected.
+is detected. The node is implemented in C++ using `rclcpp`.
 
 Default target service: `/game_director/start_game`
 
